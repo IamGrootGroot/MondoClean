@@ -24,20 +24,23 @@ class Cleaner:
         print('Succesfully anonymized column', list(sheet.rows)[0][self.colIndex-1],'.')
 
     def purify(self):
-        try :
-            sheet_Names = self.wb.get_sheet_names()
-            sheet = self.wb.get_sheet_by_name(sheet_Names[self.sheetN])
-            track = 0;
-            banned = ['.',' ','#N/A','#DIV/0','inconnu'];
-            for i in range(1, sheet.max_column) :
-                for j in range(1, sheet.max_row) :
-                    for ban in banned :
-                        if sheet.cell(row=j, column=i).value == ban:
-                            sheet.cell(row=j, column=i).value = ''
-                            track=track+1
-            print('Sheet purified, edited '+ str(track) +' cells.')
-        except :
-            print('Cleaning banned data failed.')
+#        try :
+        sheet_Names = self.wb.get_sheet_names()
+        sheet = self.wb.get_sheet_by_name(sheet_Names[self.sheetN])
+        track = 0;
+        banned = ['.',' ','#N/A','#DIV/0','inconnu'];
+        for i in range(1, sheet.max_column) :
+            for j in range(1, sheet.max_row) :
+                for ban in banned :
+                    if sheet.cell(row=j, column=i).value == ban:
+                        sheet.cell(row=j, column=i).value = ''
+                        track=track+1
+                if ("." in str(sheet.cell(row=j, column=i).value)) or ("," in str(sheet.cell(row=j, column=i).value)):
+                    track=track+1
+                    sheet.cell(row=j, column=i).value = str(sheet.cell(row=j, column=i).value).replace(',','.')
+        print('Sheet purified, edited '+ str(track) +' cells.')
+#        except :
+#        print('Cleaning banned data failed.')
 
     def changeDate(self):
         try :
