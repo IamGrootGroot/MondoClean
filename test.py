@@ -1,14 +1,15 @@
 import sys;
-from data_Cleaner_Module import data_Cleaner as DC
+from PFE_MondoClean.MondoClean.data_Cleaner_Module import data_Cleaner as DC
 
-path = '/Users/maxencepelloux/Documents/PFE/PFE_Data/Dirty_Data/Sample1.xlsx'
-newPath = '/Users/maxencepelloux/Documents/PFE/PFE_Data/Clean_Data/SampleCleanCommas.XLSX'
+path = '/Users/maxencepelloux/Documents/PFE/PFE_Data/Dirty_Data/MOEBIUS_Mondobrain_EVA.xlsx'
+newPath = '/Users/maxencepelloux/Documents/PFE/PFE_Data/Clean_Data/SampleIDV2.xlsx'
 sheetN = 0
 formatIn = '%Y%m%d'
-colIndex = 1
-cleaner = DC.Cleaner(path, sheetN, colIndex, formatIn, newPath)
-cleaner.openWB()
+colIndexAN = 1
+colIndexCat = None
+cleaner = DC.Cleaner(path)
+cleaner.openWB(1, None)
 cleaner.purify()
-cleaner.changeDate()
-cleaner.anonymize()
-cleaner.saveWB()
+cleaner.changeDate(formatIn)
+cleaner.anonymize(colIndexAN)
+cleaner.saveWB(2, newPath)
