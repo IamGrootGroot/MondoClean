@@ -76,10 +76,24 @@ class Cleaner:
     #def categorize(self):
         #TODO: Catégoriser avec intervalle précisé par l'utilisateur.
 
-    def aggreg(self, path):
-        #TODO: Aggréger même si le nombre de colonne n'est pas le même, check avec les noms
-        #pour les colonnes correspondantes.
-        self.wb1 = self.openWB(2, path)
+    def aggreg(self, paths):
+        for i, p in enumerate(paths):
+            wbb = openpyxl.load_workbook(p)
+            sheetB = wbb.active
+            headersB = list(sheetB.rows)[0]
+            sheet = self.wb.worksheets[self.sheetN]
+            headers = list(sheet.rows)[0]
+            patch_row = sheet.max_row
+            for n, head in enumerate(headers):
+                for k, headB in enumerate(headersB):
+                    if headB.value == head.value:
+                        for j in range(1, sheetB.max_row):
+                            sheet.cell(row=patch_row+j, column=n+1).value = sheetB.cell(row=j+1, column=k+1).value
+
+
+    #def doublons(self, columns):
+        #TODO: Check si la combinaison de colonnes spécifiées en liste est la même d'une ligne à l'autre
+
 
     #def joint(self):
         #TODO: Faire correspondre Open et Client
@@ -99,16 +113,16 @@ class Cleaner:
 
 
     def saveWB(self, key, newPath):
-        #try:
-        if key == 1:
-            self.wb.save(newPath)
-            print('Succesfully saved at: ', newPath)
-        else:
-            self.wb.save(newPath)
-            index = newPath.find('.xlsx')
-            pathWBA = newPath[:index] + '_ID' + newPath[index:]
-            self.wb.save(newPath)
-            self.wba.save(pathWBA)
-            print('Succesfully saved both files at:', newPath, 'and', pathWBA)
-        #except:
-            #print("Incorrect path :", newPath)
+        try:
+            if key == 1:
+                self.wb.save(newPath)
+                print('Succesfully saved at: ', newPath)
+            else:
+                self.wb.save(newPath)
+                index = newPath.find('.xlsx')
+                pathWBA = newPath[:index] + '_ID' + newPath[index:]
+                self.wb.save(newPath)
+                self.wba.save(pathWBA)
+                print('Succesfully saved both files at:', newPath, 'and', pathWBA)
+        except:
+            print("Incorrect path :", newPath)
