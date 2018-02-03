@@ -1,14 +1,21 @@
+# -*- coding: UTF-8 -*-
 import openpyxl;
 from datetime import datetime
 
 class Cleaner:
 
     def __init__(self, path):
+        """ Cleaner object initialization """
         self.sheetN = 0
         self.banned = ['.',' ','#N/A','#DIV/0','inconnu','?']
         self.path = path
 
     def openWB(self, key, path):
+        """ Load and open cleaner workbook:
+        1: Open main workbook @self.path
+        2: Open workbook to be aggregated to main workbook
+        3: Open open data workbook to be jointed to main workbook
+        """
         mods = {'basic': 1, 'aggreg': 2, 'joint': 3}
         if key == 1:
             self.wb = openpyxl.load_workbook(self.path)
@@ -18,26 +25,58 @@ class Cleaner:
             self.wb2 = openpyxl.load_workbook(path)
 
     def anonymize(self, colIndexAN):
+        """ Anonymization function: Sets cell values of given columns to their respective row index value
+        if a duplicate is found, the set value is the same as the one encountered before. A second file is
+        created for tracability purpose. This xlsx file contains the anonimyzation table with given values
+        in column 1 and original values in column 2.
+
+        1(colIndexAN is 1 integer): Anonymize column @colIndexAN
+        2(colIndex is list of integers): Anonymize columns @colIndexAN, the values @column2 in the generated
+        file become a concatenation of the values for each cell.
+        """
         try:
             track = 1
             self.wba = openpyxl.Workbook()
             sheet = self.wb.worksheets[self.sheetN]
             seen = {}
-            for i in range(2, sheet.max_row):
-                self.wba.active.cell(row=i-1, column=2).value = sheet.cell(row=i, column=colIndexAN).value
-                if sheet.cell(row=i, column=colIndexAN).value not in seen.values():
-                    seen.update({i-track:sheet.cell(row=i, column=colIndexAN).value})
-                    self.wba.active.cell(row=i-1, column=1).value = i-track
-                    sheet.cell(row=i, column=colIndexAN).value = i-track
-                else:
-                    track = track+1
-                    self.wba.active.cell(row=i-1, column=1).value = list(seen.keys())[list(seen.values()).index(sheet.cell(row=i, column=colIndexAN).value)]
-                    sheet.cell(row=i, column=colIndexAN).value = list(seen.keys())[list(seen.values()).index(sheet.cell(row=i, column=colIndexAN).value)]
-            print('Succesfully anonymized column', list(sheet.rows)[0][colIndexAN-1],'.')
+            if len(colIndexAN)==1:
+                for i in range(2, sheet.max_row):
+                    self.wba.active.cell(row=i-1, column=2).value = sheet.cell(row=i, column=colIndexAN).value
+                    if sheet.cell(row=i, column=colIndexAN).value not in seen.values():
+                        seen.update({i-track:sheet.cell(row=i, column=colIndexAN).value})
+                        self.wba.active.cell(row=i-1, column=1).value = i-track
+                        sheet.cell(row=i, column=colIndexAN).value = i-track
+                    else:
+                        track = track+1
+                        self.wba.active.cell(row=i-1, column=1).value = list(seen.keys())[list(seen.values()).index(sheet.cell(row=i, column=colIndexAN).value)]
+                        sheet.cell(row=i, column=colIndexAN).value = list(seen.keys())[list(seen.values()).index(sheet.cell(row=i, column=colIndexAN).value)]
+                colHead = {cell.value for n, cell in enumerate(list(sheet.rows)[0]) if n == colIndexminus}
+                print('Succesfully anonymized column', colHead,'.')
+            else:
+                for i in range(2, sheet.max_row):
+                    sequence = ''
+                    for k in colIndexAN:
+                        sequence += str(sheet.cell(row=i, column=k).value)
+                        if sequence not in seen.values():
+                            seen.update({i-track:sequence})
+                            self.wba.active.cell(row=i, column=k).value = i-track
+                            sheet.cell(row=i, column=k).value = i-track
+                        else:
+                            track = track+1
+                            self.wba.active.cell(row=i-1, column=1).value = list(seen.keys())[list(seen.values()).index(sequence)]
+                            sheet.cell(row=i, column=colIndexAN).value = list(seen.keys())[list(seen.values()).index(sequence)]
+                    self.wba.active.cell(row=i-1, column=2).value = sequence
+                colIndexminus = []
+                for h in colIndexAN:
+                        colIndexminus.append(h-1)
+                colHeads = {cell.value for n, cell in enumerate(list(sheet.rows)[0]) if n in colIndexminus}
+                print('Succesfully anonymized columns:', colHeads,'.')
         except:
-            print('Anonymization failed at row', i)
+            print('Anonymization failed at row', i,'.')
 
     def purify(self):
+        """Purification function, removes banned characters given by the self.banned list,
+        also removes ',' in integers"""
         try :
             sheet = self.wb.worksheets[self.sheetN]
             track = 0;
@@ -55,6 +94,7 @@ class Cleaner:
             print('Cleaning banned data failed.')
 
     def changeDate(self, formatIn):
+        """Reformats dates to the 'd/m/Y' format. The input format has to be specified by formatIn"""
         try :
             sheet = self.wb.worksheets[self.sheetN]
             for n, head in enumerate(list(sheet.rows)[0]):
@@ -74,6 +114,8 @@ class Cleaner:
             ... represents the actual input date format.""")
 
     def aggreg(self, paths):
+        """Aggregation function, appends different xlsx files @paths, no need to worry about empty or missing columns.
+        WARNING: Column names have to be the same as the ones in the main workbook"""
         for i, p in enumerate(paths):
             wbb = openpyxl.load_workbook(p)
             sheetB = wbb.active
@@ -88,9 +130,11 @@ class Cleaner:
                             sheet.cell(row=patch_row+j, column=n+1).value = sheetB.cell(row=j+1, column=k+1).value
 
     def param(self, listBans):
+        """Add new banned characters"""
         self.banned = self.banned + listBans
 
     def lock(self):
+        """Lock sheet"""
         try:
             if self.wb.protection.sheet == True:
                 self.wb.protection.sheet = False
@@ -98,24 +142,28 @@ class Cleaner:
                 self.wb.protection.sheet = True
             print('Worbook succesfully locked.')
         except:
-            print('Lock failed.')
+            print('Locking failed.')
 
     def doublons(self, columns):
-        uniq = {}
-        dupes = []
-        sheet = self.wb.worksheets[self.sheetN]
-        for row in sheet.iter_rows():
-            sequence = ''
-            for cell in row:
-                if cell.col_idx in columns:
-                    sequence += str(cell.value)
-            if sequence not in uniq.values():
-                uniq.update({cell.row:sequence})
-            else:
-                dupes.append(cell.row)
-        for i in dupes:
-            for j in range(1, sheet.max_column):
-                cell(row=i, column=j).fill = PatternFill(bgColor="FFC7CE", fill_type = "solid")
+        """Identifies duplicates and highlights them"""
+        try:
+            uniq = {}
+            dupes = []
+            sheet = self.wb.worksheets[self.sheetN]
+            for row in sheet.iter_rows():
+                sequence = ''
+                for cell in row:
+                    if cell.col_idx in columns:
+                        sequence += str(cell.value)
+                if sequence not in uniq.values():
+                    uniq.update({cell.row:sequence})
+                else:
+                    dupes.append(cell.row)
+            for i in dupes:
+                for j in range(1, sheet.max_column):
+                    cell(row=i, column=j).fill = PatternFill(bgColor="FFC7CE", fill_type = "solid")
+        except:
+            print("Can't find duplicates.")
 
     #def categorize(self):
         #TODO: Catégoriser avec intervalle précisé par l'utilisateur.
@@ -124,6 +172,10 @@ class Cleaner:
         #TODO: Faire correspondre Open et Client
 
     def saveWB(self, key, newPath):
+        """Save workbook:
+        1: Save main workbook @newPath
+        2: Save both main workbook and anonymization @newPath and newPath+'_ID'
+        """
         try:
             if key == 1:
                 self.wb.save(newPath)
@@ -134,6 +186,6 @@ class Cleaner:
                 pathWBA = newPath[:index] + '_ID' + newPath[index:]
                 self.wb.save(newPath)
                 self.wba.save(pathWBA)
-                print('Succesfully saved both files at:', newPath, 'and', pathWBA)
+                print('Succesfully saved both files at:', newPath, 'and', pathWBA,'.')
         except:
-            print("Incorrect path :", newPath)
+            print("Incorrect path :", newPath,'.')
