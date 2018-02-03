@@ -73,9 +73,6 @@ class Cleaner:
             print('Error at cell[',k,' ',n,'], invalid cell content: ',str(sheet.cell(row=k, column=n+1).value),"""please make sure the formatIn
             ... represents the actual input date format.""")
 
-    #def categorize(self):
-        #TODO: Catégoriser avec intervalle précisé par l'utilisateur.
-
     def aggreg(self, paths):
         for i, p in enumerate(paths):
             wbb = openpyxl.load_workbook(p)
@@ -90,14 +87,6 @@ class Cleaner:
                         for j in range(1, sheetB.max_row):
                             sheet.cell(row=patch_row+j, column=n+1).value = sheetB.cell(row=j+1, column=k+1).value
 
-
-    #def doublons(self, columns):
-        #TODO: Check si la combinaison de colonnes spécifiées en liste est la même d'une ligne à l'autre
-
-
-    #def joint(self):
-        #TODO: Faire correspondre Open et Client
-
     def param(self, listBans):
         self.banned = self.banned + listBans
 
@@ -111,6 +100,28 @@ class Cleaner:
         except:
             print('Lock failed.')
 
+    def doublons(self, columns):
+        uniq = {}
+        dupes = []
+        sheet = self.wb.worksheets[self.sheetN]
+        for row in sheet.iter_rows():
+            sequence = ''
+            for cell in row:
+                if cell.col_idx in columns:
+                    sequence += str(cell.value)
+            if sequence not in uniq.values():
+                uniq.update({cell.row:sequence})
+            else:
+                dupes.append(cell.row)
+        for i in dupes:
+            for j in range(1, sheet.max_column):
+                cell(row=i, column=j).fill = PatternFill(bgColor="FFC7CE", fill_type = "solid")
+
+    #def categorize(self):
+        #TODO: Catégoriser avec intervalle précisé par l'utilisateur.
+
+    #def joint(self):
+        #TODO: Faire correspondre Open et Client
 
     def saveWB(self, key, newPath):
         try:
