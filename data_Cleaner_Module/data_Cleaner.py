@@ -1,5 +1,7 @@
 # -*- coding: UTF-8 -*-
-import openpyxl;
+import openpyxl
+import csv
+import progressbar
 from datetime import datetime
 
 class Cleaner:
@@ -7,7 +9,7 @@ class Cleaner:
     def __init__(self, path):
         """ Cleaner object initialization """
         self.sheetN = 0
-        self.banned = ['.',' ','#N/A','#DIV/0','inconnu','?']
+        self.banned = ['.',' ','#N/A','#DIV/0','inconnu','?','NA','None']
         self.path = path
 
     def openWB(self, key, path):
@@ -39,7 +41,7 @@ class Cleaner:
             self.wba = openpyxl.Workbook()
             sheet = self.wb.worksheets[self.sheetN]
             seen = {}
-            if len(colIndexAN)==1:
+            if type(colIndexAN) is not list:
                 for i in range(2, sheet.max_row):
                     self.wba.active.cell(row=i-1, column=2).value = sheet.cell(row=i, column=colIndexAN).value
                     if sheet.cell(row=i, column=colIndexAN).value not in seen.values():
@@ -98,16 +100,19 @@ class Cleaner:
         try :
             sheet = self.wb.worksheets[self.sheetN]
             for n, head in enumerate(list(sheet.rows)[0]):
-                dateKey = ["date", "Date", "DATE", "DT"]
+                dateKey = ["date", "Date", "DATE", "DT "]
                 if any(key in head.value for key in dateKey):
                     for k in range(2, sheet.max_row):
-                        if str(sheet.cell(row=k, column=n+1).value) != '':
-                            if ' ' in str(sheet.cell(row=k, column=n+1).value):
-                                sheet.cell(row=k, column=n+1).value = str(sheet.cell(row=k, column=n+1).value).replace(' ','')
-                            if '.' in str(sheet.cell(row=k, column=n+1).value):
-                                sheet.cell(row=k, column=n+1).value = str(sheet.cell(row=k, column=n+1).value).replace('.','')
-                            dateObject = datetime.strptime(str(sheet.cell(row=k, column=n+1).value),formatIn)
-                            sheet.cell(row=k, column=n+1).value = dateObject.strftime('%d/%m/%Y')
+                        if type(sheet.cell(row=k, column=n+1).value) is not datetime:
+                            if str(sheet.cell(row=k, column=n+1).value) != '' and 'None' not in str(sheet.cell(row=k, column=n+1).value):
+                                if ' ' in str(sheet.cell(row=k, column=n+1).value):
+                                    sheet.cell(row=k, column=n+1).value = str(sheet.cell(row=k, column=n+1).value).replace(' ','')
+                                if '.' in str(sheet.cell(row=k, column=n+1).value):
+                                    sheet.cell(row=k, column=n+1).value = str(sheet.cell(row=k, column=n+1).value).replace('.','')
+                                dateObject = datetime.strptime(str(sheet.cell(row=k, column=n+1).value),formatIn)
+                                sheet.cell(row=k, column=n+1).value = dateObject.strftime('%d/%m/%Y')
+                        else:
+                            sheet.cell(row=k, column=n+1).value = sheet.cell(row=k, column=n+1).value.strftime('%d/%m/%Y')
             print('Dates reformatted.')
         except ValueError:
             print('Error at cell[',k,' ',n,'], invalid cell content: ',str(sheet.cell(row=k, column=n+1).value),"""please make sure the formatIn
@@ -168,8 +173,48 @@ class Cleaner:
     #def categorize(self):
         #TODO: Catégoriser avec intervalle précisé par l'utilisateur.
 
-    #def joint(self):
-        #TODO: Faire correspondre Open et Client
+    def joint(self, path, colComp1, colComp2, colJoints):
+        cleaner2 = Cleaner(path)
+        cleaner2.openWB(1,None)
+        cleaner2.purify()
+        cleaner2.changeDate(None)
+        sheetB = cleaner2.wb.worksheets[cleaner2.sheetN]
+        sheet = self.wb.worksheets[self.sheetN]
+        mr = sheet.max_row
+        mb = sheetB.max_row
+        mc = sheet.max_column
+        colc1 = []
+        colc2 = []
+        colj = []
+        for col1 in sheet.iter_cols(min_row=2, min_col=colComp1, max_col=colComp1, max_row=mr):
+            for cell1 in col1:
+                colc1.append(cell1.value)
+        for col2 in sheetB.iter_cols(min_row=2, min_col=colComp2, max_col=colComp2, max_row=mb):
+            for i, cell2 in enumerate(col2):
+                joints = []
+                colc2.append(cell2.value)
+                for k in range(len(colJoints)):
+                    for rowJ in sheetB.iter_rows(min_row=i+2, min_col=colJoints[k], max_col=colJoints[k], max_row=i+2):
+                        for cell3 in rowJ:
+                            joints.append(cell3.value)
+                colj.append(joints)
+        idx = {}
+        with progressbar.ProgressBar(max_value=len(colc2), widgets=["Matching Data:", progressbar.Percentage(), progressbar.Bar()]) as bar:
+            for j in range(len(colc2)):
+                bar.update(j)
+                i = 0
+                while colc1[i]!=colc2[j] and i<len(colc1)-1:
+                    i = i+1
+                if i>=len(colc1):
+                    pass
+                else:
+                    idx.update({i:colj[j]})
+        with progressbar.ProgressBar(max_value=len(idx), widgets=["Adding matched values:", progressbar.Percentage(), progressbar.Bar()]) as bar:
+            for i, j in enumerate(idx.keys()):
+                bar.update(i)
+                for k in range(len(colJoints)):
+                    sheet.cell(row=j+2, column=k+2+mc).value = idx.get(j)[k]
+        self.purify()
 
     def saveWB(self, key, newPath):
         """Save workbook:
