@@ -36,45 +36,45 @@ class Cleaner:
         2(colIndex is list of integers): Anonymize columns @colIndexAN, the values @column2 in the generated
         file become a concatenation of the values for each cell.
         """
-        try:
-            track = 1
-            self.wba = openpyxl.Workbook()
-            sheet = self.wb.worksheets[self.sheetN]
-            seen = {}
-            if type(colIndexAN) is not list:
-                for i in range(2, sheet.max_row):
-                    self.wba.active.cell(row=i-1, column=2).value = sheet.cell(row=i, column=colIndexAN).value
-                    if sheet.cell(row=i, column=colIndexAN).value not in seen.values():
-                        seen.update({i-track:sheet.cell(row=i, column=colIndexAN).value})
-                        self.wba.active.cell(row=i-1, column=1).value = i-track
-                        sheet.cell(row=i, column=colIndexAN).value = i-track
+        #try:
+        track = 1
+        self.wba = openpyxl.Workbook()
+        sheet = self.wb.worksheets[self.sheetN]
+        seen = {}
+        if type(colIndexAN) is not list:
+            for i in range(2, sheet.max_row):
+                self.wba.active.cell(row=i-1, column=2).value = sheet.cell(row=i, column=colIndexAN).value
+                if sheet.cell(row=i, column=colIndexAN).value not in seen.values():
+                    seen.update({i-track:sheet.cell(row=i, column=colIndexAN).value})
+                    self.wba.active.cell(row=i-1, column=1).value = i-track
+                    sheet.cell(row=i, column=colIndexAN).value = i-track
+                else:
+                    track = track+1
+                    self.wba.active.cell(row=i-1, column=1).value = list(seen.keys())[list(seen.values()).index(sheet.cell(row=i, column=colIndexAN).value)]
+                    sheet.cell(row=i, column=colIndexAN).value = list(seen.keys())[list(seen.values()).index(sheet.cell(row=i, column=colIndexAN).value)]
+            colHead = {cell.value for n, cell in enumerate(list(sheet.rows)[0]) if n == colIndexAN}
+            print('Succesfully anonymized column', colHead,'.')
+        else:
+            for i in range(2, sheet.max_row):
+                sequence = ''
+                for k in colIndexAN:
+                    sequence += str(sheet.cell(row=i, column=k).value)
+                    if sequence not in seen.values():
+                        seen.update({i-track:sequence})
+                        self.wba.active.cell(row=i, column=k).value = i-track
+                        sheet.cell(row=i, column=k).value = i-track
                     else:
                         track = track+1
-                        self.wba.active.cell(row=i-1, column=1).value = list(seen.keys())[list(seen.values()).index(sheet.cell(row=i, column=colIndexAN).value)]
-                        sheet.cell(row=i, column=colIndexAN).value = list(seen.keys())[list(seen.values()).index(sheet.cell(row=i, column=colIndexAN).value)]
-                colHead = {cell.value for n, cell in enumerate(list(sheet.rows)[0]) if n == colIndexminus}
-                print('Succesfully anonymized column', colHead,'.')
-            else:
-                for i in range(2, sheet.max_row):
-                    sequence = ''
-                    for k in colIndexAN:
-                        sequence += str(sheet.cell(row=i, column=k).value)
-                        if sequence not in seen.values():
-                            seen.update({i-track:sequence})
-                            self.wba.active.cell(row=i, column=k).value = i-track
-                            sheet.cell(row=i, column=k).value = i-track
-                        else:
-                            track = track+1
-                            self.wba.active.cell(row=i-1, column=1).value = list(seen.keys())[list(seen.values()).index(sequence)]
-                            sheet.cell(row=i, column=colIndexAN).value = list(seen.keys())[list(seen.values()).index(sequence)]
-                    self.wba.active.cell(row=i-1, column=2).value = sequence
-                colIndexminus = []
-                for h in colIndexAN:
-                        colIndexminus.append(h-1)
-                colHeads = {cell.value for n, cell in enumerate(list(sheet.rows)[0]) if n in colIndexminus}
-                print('Succesfully anonymized columns:', colHeads,'.')
-        except:
-            print('Anonymization failed at row', i,'.')
+                        self.wba.active.cell(row=i-1, column=1).value = list(seen.keys())[list(seen.values()).index(sequence)]
+                        sheet.cell(row=i, column=colIndexAN).value = list(seen.keys())[list(seen.values()).index(sequence)]
+                self.wba.active.cell(row=i-1, column=2).value = sequence
+            colIndexminus = []
+            for h in colIndexAN:
+                    colIndexminus.append(h-1)
+            colHeads = {cell.value for n, cell in enumerate(list(sheet.rows)[0]) if n in colIndexminus}
+            print('Succesfully anonymized columns:', colHeads,'.')
+        #except:
+            #print('Anonymization failed at row', i,'.')
 
     def purify(self):
         """Purification function, removes banned characters given by the self.banned list,
