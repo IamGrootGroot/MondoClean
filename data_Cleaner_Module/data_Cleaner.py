@@ -1,18 +1,20 @@
 # -*- coding: UTF-8 -*-
 import openpyxl
+import os
 import csv
-import sys
+import secrets
+import string
 import progressbar
 from datetime import datetime
 
 class Cleaner:
 
-    def __init__(self, path):
+    def __init__(self):
         """ Cleaner object initialization """
         self.sheetN = 0
         self.banned = ['.',' ','#N/A','#DIV/0','inconnu','?','NA','None']
-        self.path = path
-        self.dateStyle = openpyxl.styles.NamedStyle(name="dateStyle", number_format='DD/MM/YYYY')
+        self.wbList = []
+        self.pathList = []
 
     def openWB(self, key, path):
         """ Load and open cleaner workbook:
@@ -22,14 +24,15 @@ class Cleaner:
         """
         mods = {'basic': 1, 'aggreg': 2, 'joint': 3}
         if key == 1:
-            self.wb = openpyxl.load_workbook(self.path)
-            self.wb.add_named_style(self.dateStyle)
+            self.wb = openpyxl.load_workbook(path)
+            wbC = self.wb
+            self.wbList.append(wbC)
+            if path not in self.pathList:
+                self.pathList.append(path)
         if key == 2:
             self.wb1 = openpyxl.load_workbook(path)
-            self.wb.add_named_style(self.dateStyle)
         if key == 3:
             self.wb2 = openpyxl.load_workbook(path)
-            self.wb.add_named_style(self.dateStyle)
 
     def anonymize(self, colIndexAN):
         """ Anonymization function: Sets cell values of given columns to their respective row index value
@@ -103,6 +106,9 @@ class Cleaner:
         """Reformats dates to the 'd/m/Y' format. The input format has to be specified by formatIn"""
         try :
             sheet = self.wb.worksheets[self.sheetN]
+            dateStyleTag = self.dateHexGen()
+            dateStyle = openpyxl.styles.NamedStyle(name=dateStyleTag, number_format='DD/MM/YYYY')
+            self.wb.add_named_style(dateStyle)
             for n, head in enumerate(list(sheet.rows)[0]):
                 dateKey = ["date", "Date", "DATE", "DT "]
                 if any(key in head.value for key in dateKey):
@@ -115,10 +121,10 @@ class Cleaner:
                                     sheet.cell(row=k, column=n+1).value = str(sheet.cell(row=k, column=n+1).value).replace('.','')
                                 dateObject = datetime.strptime(str(sheet.cell(row=k, column=n+1).value),formatIn)
                                 sheet.cell(row=k, column=n+1).value = dateObject.strptime(dateObject.strftime('%d/%m/%Y'),'%d/%m/%Y')
-                                sheet.cell(row=k, column=n+1).style = "dateStyle"
+                                sheet.cell(row=k, column=n+1).style = dateStyleTag
                         else:
                             sheet.cell(row=k, column=n+1).value = sheet.cell(row=k, column=n+1).value.strptime(sheet.cell(row=k, column=n+1).value.strftime('%d/%m/%Y'),'%d/%m/%Y')
-                            sheet.cell(row=k, column=n+1).style = "dateStyle"
+                            sheet.cell(row=k, column=n+1).style = dateStyleTag
             print('Dates reformatted.')
         except ValueError:
             print('Error at cell[',k,' ',n+1,'], invalid cell content: ', str(sheet.cell(row=k, column=n+1).value),"""please make sure the formatIn
@@ -176,35 +182,10 @@ class Cleaner:
         except:
             print("Can't find duplicates.")
 
-    def categorize(self, mod, colIndexC, changes):
-        """Catégorisation, changes cell values @column
-        colIndexC to the corresponding key in the changes dict"""
-        if mod == "numerical":
-            sheet = self.wb.worksheets[self.sheetN]
-            for col in sheet.iter_cols(min_row=2, min_col=colIndexC, max_col=colIndexC, max_row=sheet.max_row):
-                for cell in col:
-                    mask = None
-                    mask = [mask for n, mask in enumerate(list(changes.keys())) if ((cell.value is not None) and (int(list(changes.values())[n][0]) <= int(cell.value) <= int(list(changes.values())[n][-1])))]
-                    if mask:
-                        cell.value = mask[0]
-                    else:
-                        pass
-        if mod == "substitute":
-            sheet = self.wb.worksheets[self.sheetN]
-            for col in sheet.iter_cols(min_row=2, min_col=colIndexC, max_col=colIndexC, max_row=sheet.max_row):
-                for cell in col:
-                    mask = None
-                    mask = [mask for n, mask in enumerate(list(changesSTR.keys())) if list(changesSTR.values())[n]==cell.value]
-                    if mask:
-                        cell.value = mask[0]
-                    else:
-                        pass
-
     def joint(self, path, colComp1, colComp2, colJoints):
         """Joint opendata @path. Finds matching values between colComp1 and colComp2
         and add the data in colJoint at matching index"""
-        cleaner2 = Cleaner(path)
-        cleaner2.openWB(1,None)
+        cleaner2.openWB(1,path)
         cleaner2.purify()
         cleaner2.changeDate(None)
         sheetB = cleaner2.wb.worksheets[cleaner2.sheetN]
@@ -245,6 +226,29 @@ class Cleaner:
                     sheet.cell(row=j+2, column=k+1+mc).value = idx.get(j)[k]
         self.purify()
 
+    def timeMachine(self, request):
+        """A time machine to allow undo and resets"""
+        if request == 'pullBack':
+            del self.wbList[-1]
+            os.remove(self.pathList[-1])
+            del self.pathList[-1]
+            self.wb = self.wbList[-1]
+            return self.pathList[-1]
+        if request == 'fullReset':
+            del self.wbList[1:]
+            for p in self.pathList[1:]:
+                os.remove(p)
+            del self.pathList[1:]
+            self.wb = self.wbList[0]
+            return self.pathList[0]
+
+    def dateHexGen(self):
+        """Hex key generator for dateStyle"""
+        try:
+            return secrets.token_hex(32)
+        except:
+            return secrets.token_hex(32)
+
     def saveWB(self, key, newPath):
         """Save workbook:
         1: Save main workbook @newPath
@@ -253,9 +257,11 @@ class Cleaner:
         try:
             if key == 1:
                 self.wb.save(newPath)
+                self.pathList.append(newPath)
                 print('Succesfully saved at: ', newPath)
             else:
                 self.wb.save(newPath)
+                self.pathList.append(newPath)
                 index = newPath.find('.xlsx')
                 pathWBA = newPath[:index] + '_ID' + newPath[index:]
                 self.wb.save(newPath)
