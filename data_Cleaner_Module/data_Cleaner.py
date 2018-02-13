@@ -226,6 +226,30 @@ class Cleaner:
                     sheet.cell(row=j+2, column=k+1+mc).value = idx.get(j)[k]
         self.purify()
 
+    def categorize(self, mod, colIndexC, changes):
+        """Catégorisation, changes cell values @column
+        colIndexC to the corresponding key in the changes dict"""
+        if mod == "numerical":
+            sheet = self.wb.worksheets[self.sheetN]
+            for col in sheet.iter_cols(min_row=2, min_col=colIndexC, max_col=colIndexC, max_row=sheet.max_row):
+                for cell in col:
+                    mask = None
+                    mask = [mask for n, mask in enumerate(list(changes.keys())) if ((cell.value is not None) and (int(list(changes.values())[n][0]) <= int(cell.value) <= int(list(changes.values())[n][-1])))]
+                    if mask:
+                        cell.value = mask[0]
+                    else:
+                        pass
+        if mod == "substitute":
+            sheet = self.wb.worksheets[self.sheetN]
+            for col in sheet.iter_cols(min_row=2, min_col=colIndexC, max_col=colIndexC, max_row=sheet.max_row):
+                for cell in col:
+                    mask = None
+                    mask = [mask for n, mask in enumerate(list(changesSTR.keys())) if list(changesSTR.values())[n]==cell.value]
+                    if mask:
+                        cell.value = mask[0]
+                    else:
+                        pass
+
     def timeMachine(self, request):
         """A time machine to allow undo and resets"""
         if request == 'pullBack':
