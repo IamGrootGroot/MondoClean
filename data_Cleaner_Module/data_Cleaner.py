@@ -62,24 +62,26 @@ class Cleaner:
                         sheet.cell(row=i, column=colIndexAN[0]).value = i-track
                     else:
                         track = track+1
-                        self.wba.active.cell(row=i-1, column=1).value = list(seen.keys())[list(seen.values()).index(sheet.cell(row=i, column=colIndexAN).value)]
-                        sheet.cell(row=i, column=colIndexAN).value = list(seen.keys())[list(seen.values()).index(sheet.cell(row=i, column=colIndexAN).value)]
+                        self.wba.active.cell(row=i-1, column=1).value = list(seen.keys())[list(seen.values()).index(sheet.cell(row=i, column=colIndexAN[0]).value)]
+                        sheet.cell(row=i, column=colIndexAN[0]).value = list(seen.keys())[list(seen.values()).index(sheet.cell(row=i, column=colIndexAN[0]).value)]
                     self.taskBytes = i-1
-                colHead = {cell.value for n, cell in enumerate(list(sheet.rows)[0]) if n+1 == colIndexAN}
+                colHead = {cell.value for n, cell in enumerate(list(sheet.rows)[0]) if n+1 == colIndexAN[0]}
                 print('Succesfully anonymized column', colHead,'.')
             else:
                 for i in range(2, sheet.max_row+1):
                     sequence = ''
                     for k in colIndexAN:
-                        sequence += str(sheet.cell(row=i, column=k).value)
-                        if sequence not in seen.values():
-                            seen.update({i-track:sequence})
-                            self.wba.active.cell(row=i, column=k).value = i-track
-                            sheet.cell(row=i, column=k).value = i-track
-                        else:
-                            track = track+1
-                            self.wba.active.cell(row=i-1, column=1).value = list(seen.keys())[list(seen.values()).index(sequence)]
-                            sheet.cell(row=i, column=colIndexAN).value = list(seen.keys())[list(seen.values()).index(sequence)]
+                        sequence += ' '+str(sheet.cell(row=i, column=k).value)
+                    if sequence not in seen.values():
+                        for u in colIndexAN:
+                            sheet.cell(row=i, column=u).value = i-track
+                        seen.update({i-track:sequence})
+                        self.wba.active.cell(row=i-1, column=1).value = i-track
+                    else:
+                        track = track+1
+                        self.wba.active.cell(row=i-1, column=1).value = list(seen.keys())[list(seen.values()).index(sequence)]
+                        for u in colIndexAN:
+                            sheet.cell(row=i, column=u).value = list(seen.keys())[list(seen.values()).index(sequence)]
                     self.wba.active.cell(row=i-1, column=2).value = sequence
                 colIndexminus = []
                 for h in colIndexAN:
@@ -196,7 +198,7 @@ class Cleaner:
                 self.taskBytes = self.taskBytes+1
             for i in dupes:
                 for j in range(1, sheet.max_column+1):
-                    cell(row=i, column=j).fill = PatternFill(bgColor="FFC7CE", fill_type = "solid")
+                    sheet.cell(row=i, column=j).fill = openpyxl.styles.PatternFill(bgColor="BO4334", fill_type = "solid")
         except:
             print("Can't find duplicates.")
 
