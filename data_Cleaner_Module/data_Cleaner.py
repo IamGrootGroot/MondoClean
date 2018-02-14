@@ -53,13 +53,13 @@ class Cleaner:
             self.maxBytes = sheet.max_row
             self.taskBytes = 0
             seen = {}
-            if type(colIndexAN) is not list:
+            if len(colIndexAN) == 1:
                 for i in range(2, sheet.max_row+1):
-                    self.wba.active.cell(row=i-1, column=2).value = sheet.cell(row=i, column=colIndexAN).value
-                    if sheet.cell(row=i, column=colIndexAN).value not in seen.values():
-                        seen.update({i-track:sheet.cell(row=i, column=colIndexAN).value})
+                    self.wba.active.cell(row=i-1, column=2).value = sheet.cell(row=i, column=colIndexAN[0]).value
+                    if sheet.cell(row=i, column=colIndexAN[0]).value not in seen.values():
+                        seen.update({i-track:sheet.cell(row=i, column=colIndexAN[0]).value})
                         self.wba.active.cell(row=i-1, column=1).value = i-track
-                        sheet.cell(row=i, column=colIndexAN).value = i-track
+                        sheet.cell(row=i, column=colIndexAN[0]).value = i-track
                     else:
                         track = track+1
                         self.wba.active.cell(row=i-1, column=1).value = list(seen.keys())[list(seen.values()).index(sheet.cell(row=i, column=colIndexAN).value)]
@@ -269,7 +269,7 @@ class Cleaner:
             for col in sheet.iter_cols(min_row=2, min_col=colIndexC, max_col=colIndexC, max_row=sheet.max_row):
                 for cell in col:
                     mask = None
-                    mask = [mask for n, mask in enumerate(list(changesSTR.keys())) if list(changesSTR.values())[n]==cell.value]
+                    mask = [mask for n, mask in enumerate(list(changes.keys())) if list(changes.values())[n]==cell.value]
                     if mask:
                         cell.value = mask[0]
                     else:
