@@ -15,6 +15,8 @@ class Cleaner:
         self.banned = ['.',' ','#N/A','#DIV/0','inconnu','?','NA','None']
         self.wbList = []
         self.pathList = []
+        self.taskBytes = 0
+        self.maxBytes = 0
 
     def openWB(self, key, path):
         """ Load and open cleaner workbook:
@@ -48,6 +50,8 @@ class Cleaner:
             track = 1
             self.wba = openpyxl.Workbook()
             sheet = self.wb.worksheets[self.sheetN]
+            self.maxBytes = sheet.max_row
+            self.taskBytes = 0
             seen = {}
             if type(colIndexAN) is not list:
                 for i in range(2, sheet.max_row+1):
@@ -60,6 +64,7 @@ class Cleaner:
                         track = track+1
                         self.wba.active.cell(row=i-1, column=1).value = list(seen.keys())[list(seen.values()).index(sheet.cell(row=i, column=colIndexAN).value)]
                         sheet.cell(row=i, column=colIndexAN).value = list(seen.keys())[list(seen.values()).index(sheet.cell(row=i, column=colIndexAN).value)]
+                    self.taskBytes = i-1
                 colHead = {cell.value for n, cell in enumerate(list(sheet.rows)[0]) if n+1 == colIndexAN}
                 print('Succesfully anonymized column', colHead,'.')
             else:
@@ -80,6 +85,7 @@ class Cleaner:
                 for h in colIndexAN:
                         colIndexminus.append(h-1)
                 colHeads = {cell.value for n, cell in enumerate(list(sheet.rows)[0]) if n in colIndexminus}
+                self.taskBytes = i-1
                 print('Succesfully anonymized columns:', colHeads,'.')
         except:
             print('Anonymization failed at row', i,'.')
@@ -89,6 +95,8 @@ class Cleaner:
         also removes ',' in integers"""
         try :
             sheet = self.wb.worksheets[self.sheetN]
+            self.maxBytes = sheet.max_column*sheet.max_row
+            self.taskBytes = 0
             track = 0;
             for i in range(1, sheet.max_column+1) :
                 for j in range(2, sheet.max_row+1) :
@@ -98,6 +106,7 @@ class Cleaner:
                     if ("." in str(sheet.cell(row=j, column=i).value)) or ("," in str(sheet.cell(row=j, column=i).value)):
                         track=track+1
                         sheet.cell(row=j, column=i).value = str(sheet.cell(row=j, column=i).value).replace(',','.')
+                    self.taskBytes=self.taskBytes+1
             print('Sheet purified, edited '+ str(track) +' cells.')
         except :
             print('Cleaning banned data failed.')
@@ -106,6 +115,8 @@ class Cleaner:
         """Reformats dates to the 'd/m/Y' format. The input format has to be specified by formatIn"""
         try :
             sheet = self.wb.worksheets[self.sheetN]
+            self.maxBytes = len(list(sheet.rows)[0])*sheet.max_row
+            self.taskBytes = 0
             dateStyleTag = self.dateHexGen()
             dateStyle = openpyxl.styles.NamedStyle(name=dateStyleTag, number_format='DD/MM/YYYY')
             self.wb.add_named_style(dateStyle)
@@ -125,6 +136,7 @@ class Cleaner:
                         else:
                             sheet.cell(row=k, column=n+1).value = sheet.cell(row=k, column=n+1).value.strptime(sheet.cell(row=k, column=n+1).value.strftime('%d/%m/%Y'),'%d/%m/%Y')
                             sheet.cell(row=k, column=n+1).style = dateStyleTag
+                self.taskBytes = self.taskBytes+1
             print('Dates reformatted.')
         except ValueError:
             print('Error at cell[',k,' ',n+1,'], invalid cell content: ', str(sheet.cell(row=k, column=n+1).value),"""please make sure the formatIn
@@ -134,6 +146,8 @@ class Cleaner:
         """Aggregation function, appends different xlsx files @paths, no need to worry about empty or missing columns.
         WARNING: Column names have to be the same as the ones in the main workbook"""
         sheet = self.wb.worksheets[self.sheetN]
+        self.maxBytes = len(paths)
+        self.taskBytes = 0
         headers = list(sheet.rows)[0]
         for i, p in enumerate(paths):
             wbb = openpyxl.load_workbook(p)
@@ -145,6 +159,7 @@ class Cleaner:
                     if headB.value == head.value:
                         for j in range(2, sheetB.max_row+1):
                             sheet.cell(row=patch_row+j-1, column=n+1).value = sheetB.cell(row=j, column=k+1).value
+            self.taskBytes = i+1
 
     def param(self, listBans):
         """Add new banned characters"""
@@ -167,6 +182,8 @@ class Cleaner:
             uniq = {}
             dupes = []
             sheet = self.wb.worksheets[self.sheetN]
+            self.maxBytes = len(columns)*sheet.max_row
+            self.taskBytes = 0
             for row in sheet.iter_rows():
                 sequence = ''
                 for cell in row:
@@ -176,6 +193,7 @@ class Cleaner:
                     uniq.update({cell.row:sequence})
                 else:
                     dupes.append(cell.row)
+                self.taskBytes = self.taskBytes+1
             for i in dupes:
                 for j in range(1, sheet.max_column+1):
                     cell(row=i, column=j).fill = PatternFill(bgColor="FFC7CE", fill_type = "solid")
@@ -190,6 +208,8 @@ class Cleaner:
         cleaner2.changeDate(None)
         sheetB = cleaner2.wb.worksheets[cleaner2.sheetN]
         sheet = self.wb.worksheets[self.sheetN]
+        self.maxBytes = sheet.max_row
+        self.taskBytes = 0
         mr = sheet.max_row
         mb = sheetB.max_row
         mc = sheet.max_column
@@ -209,21 +229,21 @@ class Cleaner:
                             joints.append(cell3.value)
                 colj.append(joints)
         idx = {}
-        with progressbar.ProgressBar(max_value=len(colc2), widgets=["Matching Data:", progressbar.Percentage(), progressbar.Bar()]) as bar:
-            for j in range(len(colc2)):
-                bar.update(j)
-                i = 0
-                while colc1[i]!=colc2[j] and i<len(colc1)-1:
-                    i = i+1
-                if i>=len(colc1):
-                    pass
-                else:
-                    idx.update({i:colj[j]})
-        with progressbar.ProgressBar(max_value=len(idx), widgets=["Adding matched data:", progressbar.Percentage(), progressbar.Bar()]) as bar:
-            for i, j in enumerate(idx.keys()):
-                bar.update(i)
-                for k in range(len(colJoints)):
-                    sheet.cell(row=j+2, column=k+1+mc).value = idx.get(j)[k]
+        for j in range(len(colc2)):
+            self.maxBytes = sheet.max_row
+            self.taskBytes = 0
+            i = 0
+            while colc1[i]!=colc2[j] and i<len(colc1)-1:
+                i = i+1
+            if i>=len(colc1):
+                pass
+            else:
+                idx.update({i:colj[j]})
+            self.taskBytes = j+1
+
+        for i, j in enumerate(idx.keys()):
+            for k in range(len(colJoints)):
+                sheet.cell(row=j+2, column=k+1+mc).value = idx.get(j)[k]
         self.purify()
 
     def categorize(self, mod, colIndexC, changes):
@@ -231,6 +251,8 @@ class Cleaner:
         colIndexC to the corresponding key in the changes dict"""
         if mod == "numerical":
             sheet = self.wb.worksheets[self.sheetN]
+            self.maxBytes = sheet.max_row
+            self.taskBytes = 0
             for col in sheet.iter_cols(min_row=2, min_col=colIndexC, max_col=colIndexC, max_row=sheet.max_row):
                 for cell in col:
                     mask = None
@@ -239,8 +261,11 @@ class Cleaner:
                         cell.value = mask[0]
                     else:
                         pass
+                self.taskBytes = self.taskBytes+1
         if mod == "substitute":
             sheet = self.wb.worksheets[self.sheetN]
+            self.maxBytes = sheet.max_row
+            self.taskBytes = 0
             for col in sheet.iter_cols(min_row=2, min_col=colIndexC, max_col=colIndexC, max_row=sheet.max_row):
                 for cell in col:
                     mask = None
@@ -249,6 +274,7 @@ class Cleaner:
                         cell.value = mask[0]
                     else:
                         pass
+                self.taskBytes = self.taskBytes+1
 
     def timeMachine(self, request):
         """A time machine to allow undo and resets"""
@@ -272,6 +298,9 @@ class Cleaner:
             return secrets.token_hex(32)
         except:
             return secrets.token_hex(32)
+
+    def getProgress(self):
+        return (self.taskBytes*100)/self.maxBytes
 
     def saveWB(self, key, newPath):
         """Save workbook:
