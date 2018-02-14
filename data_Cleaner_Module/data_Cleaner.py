@@ -198,7 +198,7 @@ class Cleaner:
                 self.taskBytes = self.taskBytes+1
             for i in dupes:
                 for j in range(1, sheet.max_column+1):
-                    sheet.cell(row=i, column=j).fill = openpyxl.styles.PatternFill(bgColor="BO4334", fill_type = "solid")
+                    sheet.cell(row=i, column=j).fill = openpyxl.styles.PatternFill('solid', openpyxl.styles.colors.RED)
         except:
             print("Can't find duplicates.")
 
