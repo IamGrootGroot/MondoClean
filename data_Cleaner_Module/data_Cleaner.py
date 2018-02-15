@@ -205,6 +205,7 @@ class Cleaner:
     def joint(self, path, colComp1, colComp2, colJoints):
         """Joint opendata @path. Finds matching values between colComp1 and colComp2
         and add the data in colJoint at matching index"""
+        cleaner2 = Cleaner()
         cleaner2.openWB(1,path)
         cleaner2.purify()
         cleaner2.changeDate(None)
