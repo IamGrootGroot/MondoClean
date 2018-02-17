@@ -4,7 +4,6 @@ import os
 import csv
 import secrets
 import string
-import progressbar
 from datetime import datetime
 
 class Cleaner:
