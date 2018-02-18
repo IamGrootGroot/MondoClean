@@ -15,7 +15,7 @@ class Cleaner:
         self.wbList = []
         self.pathList = []
         self.taskBytes = 0
-        self.maxBytes = 0
+        self.maxBytes = 100
 
     def openWB(self, key, path):
         """ Load and open cleaner workbook:
@@ -88,6 +88,7 @@ class Cleaner:
                 colHeads = {cell.value for n, cell in enumerate(list(sheet.rows)[0]) if n in colIndexminus}
                 self.taskBytes = i-1
                 print('Succesfully anonymized columns:', colHeads,'.')
+            self.taskBytes = 0
         except:
             print('Anonymization failed at row', i,'.')
 
@@ -108,6 +109,7 @@ class Cleaner:
                         track=track+1
                         sheet.cell(row=j, column=i).value = str(sheet.cell(row=j, column=i).value).replace(',','.')
                     self.taskBytes=self.taskBytes+1
+            self.taskBytes = 0
             print('Sheet purified, edited '+ str(track) +' cells.')
         except :
             print('Cleaning banned data failed.')
@@ -137,7 +139,10 @@ class Cleaner:
                         else:
                             sheet.cell(row=k, column=n+1).value = sheet.cell(row=k, column=n+1).value.strptime(sheet.cell(row=k, column=n+1).value.strftime('%d/%m/%Y'),'%d/%m/%Y')
                             sheet.cell(row=k, column=n+1).style = dateStyleTag
-                self.taskBytes = self.taskBytes+1
+                        self.taskBytes = self.taskBytes+1
+                else:
+                    self.taskBytes = self.taskBytes+sheet.max_row
+            self.taskBytes = 0
             print('Dates reformatted.')
         except ValueError:
             print('Error at cell[',k,' ',n+1,'], invalid cell content: ', str(sheet.cell(row=k, column=n+1).value),"""please make sure the formatIn
@@ -161,6 +166,7 @@ class Cleaner:
                         for j in range(2, sheetB.max_row+1):
                             sheet.cell(row=patch_row+j-1, column=n+1).value = sheetB.cell(row=j, column=k+1).value
             self.taskBytes = i+1
+        self.taskBytes = 0
 
     def param(self, listBans):
         """Add new banned characters"""
@@ -198,6 +204,7 @@ class Cleaner:
             for i in dupes:
                 for j in range(1, sheet.max_column+1):
                     sheet.cell(row=i, column=j).fill = openpyxl.styles.PatternFill('solid', openpyxl.styles.colors.RED)
+            self.taskBytes = 0
         except:
             print("Can't find duplicates.")
 
@@ -232,8 +239,6 @@ class Cleaner:
                 colj.append(joints)
         idx = {}
         for j in range(len(colc2)):
-            self.maxBytes = sheet.max_row
-            self.taskBytes = 0
             i = 0
             while colc1[i]!=colc2[j] and i<len(colc1)-1:
                 i = i+1
@@ -242,10 +247,12 @@ class Cleaner:
             else:
                 idx.update({i:colj[j]})
             self.taskBytes = j+1
-
+        self.maxBytes = len(idx.keys())*len(colJoints)
         for i, j in enumerate(idx.keys()):
             for k in range(len(colJoints)):
                 sheet.cell(row=j+2, column=k+1+mc).value = idx.get(j)[k]
+                self.taskBytes = self.taskBytes+1
+        self.taskBytes = 0
         self.purify()
 
     def categorize(self, mod, colIndexC, changes):
@@ -264,6 +271,7 @@ class Cleaner:
                     else:
                         pass
                 self.taskBytes = self.taskBytes+1
+            self.taskBytes = 0
         if mod == "substitute":
             sheet = self.wb.worksheets[self.sheetN]
             self.maxBytes = sheet.max_row
@@ -277,6 +285,7 @@ class Cleaner:
                     else:
                         pass
                 self.taskBytes = self.taskBytes+1
+            self.taskBytes = 0
 
     def timeMachine(self, request):
         """A time machine to allow undo and resets"""
