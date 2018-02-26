@@ -4,6 +4,7 @@ import os
 import csv
 import secrets
 import string
+from collections import Counter
 from datetime import datetime
 
 class Cleaner:
@@ -208,6 +209,24 @@ class Cleaner:
         except:
             print("Can't find duplicates.")
 
+    def count(self, colIndex):
+        sheet = self.wb.worksheets[self.sheetN]
+        sequences = []
+        colCount = sheet.max_column+1
+        sheet.cell(row=1, column=colCount).value = 'COUNT'
+        for k, row in enumerate(sheet.iter_rows()):
+            sequence = ''
+            if k>0:
+                for n, cell in enumerate(row):
+                    if n+1 in colIndex:
+                        sequence += str(cell.value)
+                sequences.append(sequence)
+        occurences = Counter(sequences)
+        for n, s in enumerate(sequences):
+            if s in occurences.keys():
+                sheet.cell(row=n+2, column=colCount).value = occurences.get(s)
+
+
     def joint(self, path, colComp1, colComp2, colJoints):
         """Joint opendata @path. Finds matching values between colComp1 and colComp2
         and add the data in colJoint at matching index"""
@@ -222,6 +241,11 @@ class Cleaner:
         mr = sheet.max_row
         mb = sheetB.max_row
         mc = sheet.max_column
+        heads = []
+        for row in sheetB.iter_rows(min_row=1, max_row=1):
+            for n, cell in enumerate(row):
+                if n+1 in colJoints:
+                    heads.append(str(cell.value))
         colc1 = []
         colc2 = []
         colj = []
@@ -253,6 +277,8 @@ class Cleaner:
                 sheet.cell(row=j+2, column=k+1+mc).value = idx.get(j)[k]
                 self.taskBytes = self.taskBytes+1
         self.taskBytes = 0
+        for n, s in enumerate(heads):
+            sheet.cell(row=1, column=n+1+mc).value = s
         self.purify()
 
     def categorize(self, mod, colIndexC, changes):
