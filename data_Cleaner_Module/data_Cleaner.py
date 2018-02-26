@@ -211,6 +211,8 @@ class Cleaner:
 
     def count(self, colIndex):
         sheet = self.wb.worksheets[self.sheetN]
+        self.maxBytes = sheet.max_row*2
+        self.taskBytes = 0
         sequences = []
         colCount = sheet.max_column+1
         sheet.cell(row=1, column=colCount).value = 'COUNT'
@@ -221,10 +223,13 @@ class Cleaner:
                     if n+1 in colIndex:
                         sequence += str(cell.value)
                 sequences.append(sequence)
+                self.taskBytes = self.taskBytes+1
         occurences = Counter(sequences)
         for n, s in enumerate(sequences):
             if s in occurences.keys():
                 sheet.cell(row=n+2, column=colCount).value = occurences.get(s)
+                self.taskBytes = self.taskBytes+1
+        self.taskBytes = 0
 
 
     def joint(self, path, colComp1, colComp2, colJoints):
