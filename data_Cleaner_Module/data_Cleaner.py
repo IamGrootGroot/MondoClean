@@ -235,6 +235,9 @@ class Cleaner:
 
     def summ(self, colIndex, colAdd):
         """Sum of values @colAdd for same occurences of a given combination"""
+        sheet = self.wb.worksheets[self.sheetN]
+        self.maxBytes = sheet.max_row*2
+        self.taskBytes = 0
         sequences = {}
         colCount = sheet.max_column+1
         sheet.cell(row=1, column=colCount).value = 'SUM'
@@ -250,6 +253,7 @@ class Cleaner:
                     sequences[sequence]+=val
                 else:
                     sequences.update({sequence:val})
+            self.taskBytes = self.taskBytes+1
         for k, row in enumerate(sheet.iter_rows()):
             sequence = ''
             for n, cell in enumerate(row):
@@ -257,6 +261,8 @@ class Cleaner:
                     sequence += str(cell.value)
             if sequence in sequences:
                 sheet.cell(row=k+1, column=colCount).value = sequences.get(sequence)
+            self.taskBytes = self.taskBytes+1
+        self.taskBytes = 0
 
     def joint(self, path, colComp1, colComp2, colJoints):
         """Joint opendata @path. Finds matching values between colComp1 and colComp2
