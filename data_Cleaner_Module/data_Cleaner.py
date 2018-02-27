@@ -210,6 +210,8 @@ class Cleaner:
             print("Can't find duplicates.")
 
     def count(self, colIndex):
+        """Counts the number of occurences of a given
+        combination of column values and write that amount in the last column"""
         sheet = self.wb.worksheets[self.sheetN]
         self.maxBytes = sheet.max_row*2
         self.taskBytes = 0
@@ -231,6 +233,30 @@ class Cleaner:
                 self.taskBytes = self.taskBytes+1
         self.taskBytes = 0
 
+    def summ(self, colIndex, colAdd):
+        """Sum of values @colAdd for same occurences of a given combination"""
+        sequences = {}
+        colCount = sheet.max_column+1
+        sheet.cell(row=1, column=colCount).value = 'SUM'
+        for k, row in enumerate(sheet.iter_rows()):
+            sequence = ''
+            if k>0:
+                for n, cell in enumerate(row):
+                    if n+1 in colIndex:
+                        sequence += str(cell.value)
+                    if n+1==colAdd:
+                        val = int(cell.value)   #Has to be numerical
+                if sequence in sequences:
+                    sequences[sequence]+=val
+                else:
+                    sequences.update({sequence:val})
+        for k, row in enumerate(sheet.iter_rows()):
+            sequence = ''
+            for n, cell in enumerate(row):
+                if n+1 in colIndex:
+                    sequence += str(cell.value)
+            if sequence in sequences:
+                sheet.cell(row=k+1, column=colCount).value = sequences.get(sequence)
 
     def joint(self, path, colComp1, colComp2, colJoints):
         """Joint opendata @path. Finds matching values between colComp1 and colComp2
