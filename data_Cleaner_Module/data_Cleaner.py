@@ -1,11 +1,13 @@
 # -*- coding: UTF-8 -*-
 import openpyxl
 import os
+import sys
 import csv
 import secrets
 import string
 from collections import Counter
 from datetime import datetime
+from random import randint
 
 class Cleaner:
 
@@ -15,6 +17,7 @@ class Cleaner:
         self.banned = ['.',' ','#N/A','#DIV/0','inconnu','?','NA','None']
         self.wbList = []
         self.pathList = []
+        self.given = []
         self.taskBytes = 0
         self.maxBytes = 100
 
@@ -53,16 +56,23 @@ class Cleaner:
             self.maxBytes = sheet.max_row
             self.taskBytes = 0
             seen = {}
+            head = ''
+            self.wba.active.cell(row=1, column=1).value = 'ID'
+            for s in colIndexAN:
+                head += '+'+str(sheet.cell(row=1, column=s).value)
+            self.wba.active.cell(row=1, column=2).value = head
             if len(colIndexAN) == 1:
                 for i in range(2, sheet.max_row+1):
-                    self.wba.active.cell(row=i-1, column=2).value = sheet.cell(row=i, column=colIndexAN[0]).value
                     if sheet.cell(row=i, column=colIndexAN[0]).value not in seen.values():
-                        seen.update({i-track:sheet.cell(row=i, column=colIndexAN[0]).value})
-                        self.wba.active.cell(row=i-1, column=1).value = i-track
-                        sheet.cell(row=i, column=colIndexAN[0]).value = i-track
+                        giv = randint(0, sheet.max_row*sheet.max_column)
+                        while giv in self.given:
+                            giv = randint(0, sheet.max_row*sheet.max_column)
+                        seen.update({giv:sheet.cell(row=i, column=colIndexAN[0]).value})
+                        self.wba.active.cell(row=self.wba.active.max_row+1, column=1).value = giv
+                        self.wba.active.cell(row=self.wba.active.max_row, column=2).value = sheet.cell(row=i, column=colIndexAN[0]).value
+                        sheet.cell(row=i, column=colIndexAN[0]).value = giv
+                        self.given.append(giv)
                     else:
-                        track = track+1
-                        self.wba.active.cell(row=i-1, column=1).value = list(seen.keys())[list(seen.values()).index(sheet.cell(row=i, column=colIndexAN[0]).value)]
                         sheet.cell(row=i, column=colIndexAN[0]).value = list(seen.keys())[list(seen.values()).index(sheet.cell(row=i, column=colIndexAN[0]).value)]
                     self.taskBytes = i-1
                 colHead = {cell.value for n, cell in enumerate(list(sheet.rows)[0]) if n+1 == colIndexAN[0]}
@@ -73,16 +83,18 @@ class Cleaner:
                     for k in colIndexAN:
                         sequence += ' '+str(sheet.cell(row=i, column=k).value)
                     if sequence not in seen.values():
+                        giv = randint(0, sheet.max_row*sheet.max_column)
+                        while giv in self.given:
+                            giv = randint(0, sheet.max_row*sheet.max_column)
                         for u in colIndexAN:
-                            sheet.cell(row=i, column=u).value = i-track
-                        seen.update({i-track:sequence})
-                        self.wba.active.cell(row=i-1, column=1).value = i-track
+                            sheet.cell(row=i, column=u).value = giv
+                        seen.update({giv:sequence})
+                        self.wba.active.cell(row=self.wba.active.max_row+1, column=1).value = giv
+                        self.wba.active.cell(row=self.wba.active.max_row, column=2).value = sequence
+                        self.given.append(giv)
                     else:
-                        track = track+1
-                        self.wba.active.cell(row=i-1, column=1).value = list(seen.keys())[list(seen.values()).index(sequence)]
                         for u in colIndexAN:
                             sheet.cell(row=i, column=u).value = list(seen.keys())[list(seen.values()).index(sequence)]
-                    self.wba.active.cell(row=i-1, column=2).value = sequence
                 colIndexminus = []
                 for h in colIndexAN:
                         colIndexminus.append(h-1)
