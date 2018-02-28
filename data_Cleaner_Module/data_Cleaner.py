@@ -118,9 +118,10 @@ class Cleaner:
                     if sheet.cell(row=j, column=i).value in self.banned:
                             sheet.cell(row=j, column=i).value = None
                             track=track+1
-                    if ("." in str(sheet.cell(row=j, column=i).value)) or ("," in str(sheet.cell(row=j, column=i).value)):
+                    if "," in str(sheet.cell(row=j, column=i).value):
                         track=track+1
                         sheet.cell(row=j, column=i).value = str(sheet.cell(row=j, column=i).value).replace(',','.')
+                    sheet.cell(row=j, column=i).value = str(sheet.cell(row=j, column=i).value).strip()
                     self.taskBytes=self.taskBytes+1
             self.taskBytes = 0
             print('Sheet purified, edited '+ str(track) +' cells.')
@@ -204,6 +205,8 @@ class Cleaner:
             sheet = self.wb.worksheets[self.sheetN]
             self.maxBytes = len(columns)*sheet.max_row
             self.taskBytes = 0
+            maxCol = sheet.max_column+1
+            sheet.cell(row=1, column = maxCol).value = 'DOUBLON_FLAG'
             for row in sheet.iter_rows():
                 sequence = ''
                 for cell in row:
@@ -217,6 +220,7 @@ class Cleaner:
             for i in dupes:
                 for j in range(1, sheet.max_column+1):
                     sheet.cell(row=i, column=j).fill = openpyxl.styles.PatternFill('solid', openpyxl.styles.colors.RED)
+                    sheet.cell(row=i, column=maxCol).value = 'Doublon'
             self.taskBytes = 0
         except:
             print("Can't find duplicates.")
@@ -335,28 +339,38 @@ class Cleaner:
         colIndexC to the corresponding key in the changes dict"""
         if mod == "numerical":
             sheet = self.wb.worksheets[self.sheetN]
+            maxCol = sheet.max_column+1
             self.maxBytes = sheet.max_row
             self.taskBytes = 0
+            sheet.cell(row=1, column=maxCol).value = "CATEG "+str(sheet.cell(row=1, column=colIndexC).value)
             for col in sheet.iter_cols(min_row=2, min_col=colIndexC, max_col=colIndexC, max_row=sheet.max_row):
-                for cell in col:
+                for k, cell in enumerate(col):
                     mask = None
-                    mask = [mask for n, mask in enumerate(list(changes.keys())) if ((cell.value is not None) and (int(list(changes.values())[n][0]) <= int(cell.value) <= int(list(changes.values())[n][-1])))]
-                    if mask:
-                        cell.value = mask[0]
+                    if cell.value != 'None':
+                        mask = [mask for n, mask in enumerate(list(changes.keys())) if int(list(changes.values())[n][0]) <= int(cell.value) <= int(list(changes.values())[n][-1])]
+                        if mask:
+                            sheet.cell(row=k+2, column=maxCol).value = mask[0]
+                        else:
+                            pass
                     else:
                         pass
                 self.taskBytes = self.taskBytes+1
             self.taskBytes = 0
         if mod == "substitute":
             sheet = self.wb.worksheets[self.sheetN]
+            maxCol = sheet.max_column+1
             self.maxBytes = sheet.max_row
             self.taskBytes = 0
+            sheet.cell(row=1, column=maxCol).value = "CATEG "+str(sheet.cell(row=1, column=colIndexC).value)
             for col in sheet.iter_cols(min_row=2, min_col=colIndexC, max_col=colIndexC, max_row=sheet.max_row):
-                for cell in col:
+                for k, cell in enumerate(col):
                     mask = None
-                    mask = [mask for n, mask in enumerate(list(changes.keys())) if list(changes.values())[n]==cell.value]
-                    if mask:
-                        cell.value = mask[0]
+                    if cell.value != 'None':
+                        mask = [mask for n, mask in enumerate(list(changes.keys())) if list(changes.values())[n]==cell.value]
+                        if mask:
+                            sheet.cell(row=k+2, column=maxCol).value = mask[0]
+                        else:
+                            pass
                     else:
                         pass
                 self.taskBytes = self.taskBytes+1
