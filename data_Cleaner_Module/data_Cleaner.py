@@ -112,9 +112,9 @@ class Cleaner:
             sheet = self.wb.worksheets[self.sheetN]
             self.maxBytes = sheet.max_column*sheet.max_row
             self.taskBytes = 0
-            track = 0;
-            for i in range(1, sheet.max_column+1) :
-                for j in range(2, sheet.max_row+1) :
+            track = 0
+            for i in range(1, sheet.max_column+1):
+                for j in range(2, sheet.max_row+1):
                     if sheet.cell(row=j, column=i).value in self.banned:
                             sheet.cell(row=j, column=i).value = None
                             track=track+1
@@ -375,6 +375,15 @@ class Cleaner:
                         pass
                 self.taskBytes = self.taskBytes+1
             self.taskBytes = 0
+
+    def addIndex(self):
+        sheet = self.wb.worksheets[self.sheetN]
+        self.maxBytes = sheet.max_column*sheet.max_row
+        self.taskBytes = 0
+        track = 0;
+        for row in sheet.iter_rows(max_row=1):
+            for n, cell in enumerate(row):
+                cell.value = str(n+1)+' '+cell.value
 
     def timeMachine(self, request):
         """A time machine to allow undo and resets"""
