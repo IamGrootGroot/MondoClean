@@ -108,25 +108,29 @@ class Cleaner:
     def purify(self):
         """Purification function, removes banned characters given by the self.banned list,
         also removes ',' in integers"""
-        try :
-            sheet = self.wb.worksheets[self.sheetN]
-            self.maxBytes = sheet.max_column*sheet.max_row
-            self.taskBytes = 0
-            track = 0
-            for i in range(1, sheet.max_column+1):
-                for j in range(2, sheet.max_row+1):
-                    if sheet.cell(row=j, column=i).value in self.banned:
-                            sheet.cell(row=j, column=i).value = None
-                            track=track+1
-                    if "," in str(sheet.cell(row=j, column=i).value):
-                        track=track+1
-                        sheet.cell(row=j, column=i).value = str(sheet.cell(row=j, column=i).value).replace(',','.')
-                    sheet.cell(row=j, column=i).value = str(sheet.cell(row=j, column=i).value).strip()
-                    self.taskBytes=self.taskBytes+1
-            self.taskBytes = 0
-            print('Sheet purified, edited '+ str(track) +' cells.')
-        except :
-            print('Cleaning banned data failed.')
+        #try :
+        sheet = self.wb.worksheets[self.sheetN]
+        self.maxBytes = sheet.max_column*sheet.max_row
+        self.taskBytes = 0
+        track = 0
+        for i in range(1, sheet.max_column+1):
+            for j in range(2, sheet.max_row+1):
+                if type(sheet.cell(row=j, column=i).value) is str:
+                    sheet.cell(row=j, column=i).value = sheet.cell(row=j, column=i).value.strip()
+                if sheet.cell(row=j, column=i).value in self.banned:
+                    sheet.cell(row=j, column=i).value = None
+                    track=track+1
+                if self.convertFloat(str(sheet.cell(row=j, column=i).value).replace(',','.')) is float:
+                    track=track+1
+                    sheet.cell(row=j, column=i).value = float(sheet.cell(row=j, column=i).value))
+                if self.convertFloat(sheet.cell(row=j, column=i).value) and ("." in str(sheet.cell(row=j, column=i).value)):
+                    track=track+1
+                    sheet.cell(row=j, column=i).value = str(sheet.cell(row=j, column=i).value).replace('.',',') ## TODO NUMBERFORMAT
+                self.taskBytes=self.taskBytes+1
+        self.taskBytes = 0
+        print('Sheet purified, edited '+ str(track) +' cells.')
+        #except :
+            #print('Cleaning banned data failed.')
 
     def changeDate(self, formatIn):
         """Reformats dates to the 'd/m/Y' format. The input format has to be specified by formatIn"""
@@ -264,7 +268,7 @@ class Cleaner:
                     if n+1 in colIndex:
                         sequence += str(cell.value)
                     if n+1==colAdd:
-                        val = int(cell.value)   #Has to be numerical
+                        val = float(cell.value)   #Has to be numerical
                 if sequence in sequences:
                     sequences[sequence]+=val
                 else:
@@ -332,7 +336,6 @@ class Cleaner:
         self.taskBytes = 0
         for n, s in enumerate(heads):
             sheet.cell(row=1, column=n+1+mc).value = s
-        self.purify()
 
     def categorize(self, mod, colIndexC, changes):
         """Catégorisation, changes cell values @column
@@ -384,6 +387,9 @@ class Cleaner:
         for row in sheet.iter_rows(max_row=1):
             for n, cell in enumerate(row):
                 cell.value = str(n+1)+' '+cell.value
+
+    def convertFloat(self, value):
+        return float(value)
 
     def timeMachine(self, request):
         """A time machine to allow undo and resets"""
