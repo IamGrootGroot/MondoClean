@@ -108,31 +108,50 @@ class Cleaner:
     def purify(self):
         """Purification function, removes banned characters given by the self.banned list,
         also removes ',' in integers"""
-        #try :
-        sheet = self.wb.worksheets[self.sheetN]
-        self.maxBytes = sheet.max_column*sheet.max_row
-        self.taskBytes = 0
-        track = 0
-        for i in range(1, sheet.max_column+1):
-            for j in range(2, sheet.max_row+1):
-                if type(sheet.cell(row=j, column=i).value) is str:
-                    sheet.cell(row=j, column=i).value = sheet.cell(row=j, column=i).value.strip()
-                if sheet.cell(row=j, column=i).value in self.banned:
-                    sheet.cell(row=j, column=i).value = None
-                    track=track+1
-                if self.convertFloat(str(sheet.cell(row=j, column=i).value).replace(',','.')) is float:
-                    track=track+1
-                    sheet.cell(row=j, column=i).value = float(sheet.cell(row=j, column=i).value))
-                if self.convertFloat(sheet.cell(row=j, column=i).value) and ("." in str(sheet.cell(row=j, column=i).value)):
-                    track=track+1
-                    sheet.cell(row=j, column=i).value = str(sheet.cell(row=j, column=i).value).replace('.',',') ## TODO NUMBERFORMAT
-                self.taskBytes=self.taskBytes+1
-        self.taskBytes = 0
-        print('Sheet purified, edited '+ str(track) +' cells.')
-        #except :
-            #print('Cleaning banned data failed.')
+        try :
+            sheet = self.wb.worksheets[self.sheetN]
+            self.maxBytes = sheet.max_column*sheet.max_row
+            self.taskBytes = 0
+            track = 0
+            for i in range(1, sheet.max_column+1):
+                for j in range(2, sheet.max_row+1):
+                    if type(sheet.cell(row=j, column=i).value) is str:
+                        sheet.cell(row=j, column=i).value = sheet.cell(row=j, column=i).value.strip()
+                    if sheet.cell(row=j, column=i).value in self.banned:
+                        sheet.cell(row=j, column=i).value = None
+                        track=track+1
+                    self.taskBytes=self.taskBytes+1
+            self.taskBytes = 0
+            print('Sheet purified, edited '+ str(track) +' cells.')
+        except :
+            print('Cleaning banned data failed.')
 
-    def changeDate(self, formatIn):
+    def formatNumbers(self):
+        """Manages numbers formatting"""
+        try:
+            sheet = self.wb.worksheets[self.sheetN]
+            self.maxBytes = sheet.max_column*sheet.max_row
+            self.taskBytes = 0
+            track = 0
+            for i in range(1, sheet.max_column+1):
+                for j in range(2, sheet.max_row+1):
+                    if type(self.convertFloat(sheet.cell(row=j, column=i).value)) is float:
+                        track=track+1
+                        sheet.cell(row=j, column=i).value = float(sheet.cell(row=j, column=i).value)
+                        sheet.cell(row=j, column=i).number_format = '0.00'
+                    elif (type(self.convertFloat(sheet.cell(row=j, column=i).value)) is not float) and ("," in str(sheet.cell(row=j, column=i).value)):
+                        track=track+1
+                        sheet.cell(row=j, column=i).value = float(str(sheet.cell(row=j, column=i).value).replace(',','.'))
+                        sheet.cell(row=j, column=i).number_format = '0.00'
+                    else:
+                        pass
+                    self.taskBytes=self.taskBytes+1
+            self.taskBytes = 0
+        except:
+            print('Failed while formatting numbers.')
+
+
+    def changeDate(self, formatIn): ## TODO INDEX DATE
         """Reformats dates to the 'd/m/Y' format. The input format has to be specified by formatIn"""
         try :
             sheet = self.wb.worksheets[self.sheetN]
@@ -389,21 +408,27 @@ class Cleaner:
                 cell.value = str(n+1)+' '+cell.value
 
     def convertFloat(self, value):
-        return float(value)
+        try:
+            return float(value)
+        except:
+            return(value)
 
-    def timeMachine(self, request):
+    def timeMachine(self, request, *args):
         """A time machine to allow undo and resets"""
         if request == 'pullBack':
-            del self.wbList[-1]
-            os.remove(self.pathList[-1])
-            del self.pathList[-1]
+            #del self.wbList[-1]
+            #os.remove(self.pathList[-1])####LES LIGNES QUI SUPPRIMENT
+            #del self.pathList[-1]
             self.wb = self.wbList[-1]
             return self.pathList[-1]
+        if request == 'pullBack@':
+            self.wb = self.wbList[self.pathList.index(args[0])]
+            return self.pathList[self.pathList.index(args[0])]
         if request == 'fullReset':
-            del self.wbList[1:]
-            for p in self.pathList[1:]:
-                os.remove(p)
-            del self.pathList[1:]
+            #del self.wbList[1:]
+            #for p in self.pathList[1:]: ####Suppriment aussi
+                #os.remove(p)
+            #del self.pathList[1:]
             self.wb = self.wbList[0]
             return self.pathList[0]
 
