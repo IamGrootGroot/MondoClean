@@ -40,7 +40,7 @@ class Cleaner:
             self.wb2 = openpyxl.load_workbook(path)
 
     def anonymize(self, colIndexAN):
-        """ Anonymization function: Sets cell values of given columns to their respective row index value
+        """ Anonymization function: Sets cell values of given columns to random integer value
         if a duplicate is found, the set value is the same as the one encountered before. A second file is
         created for tracability purpose. This xlsx file contains the anonimyzation table with given values
         in column 1 and original values in column 2.
@@ -50,7 +50,6 @@ class Cleaner:
         file become a concatenation of the values for each cell.
         """
         try:
-            track = 1
             self.wba = openpyxl.Workbook()
             sheet = self.wb.worksheets[self.sheetN]
             self.maxBytes = sheet.max_row
@@ -71,9 +70,11 @@ class Cleaner:
                         self.wba.active.cell(row=self.wba.active.max_row+1, column=1).value = giv
                         self.wba.active.cell(row=self.wba.active.max_row, column=2).value = sheet.cell(row=i, column=colIndexAN[0]).value
                         sheet.cell(row=i, column=colIndexAN[0]).value = giv
+                        sheet.cell(row=i, column=colIndexAN[0]).number_format = 'General'
                         self.given.append(giv)
                     else:
                         sheet.cell(row=i, column=colIndexAN[0]).value = list(seen.keys())[list(seen.values()).index(sheet.cell(row=i, column=colIndexAN[0]).value)]
+                        sheet.cell(row=i, column=colIndexAN[0]).number_format = 'General'
                     self.taskBytes = i-1
                 colHead = {cell.value for n, cell in enumerate(list(sheet.rows)[0]) if n+1 == colIndexAN[0]}
                 print('Succesfully anonymized column', colHead,'.')
@@ -88,6 +89,7 @@ class Cleaner:
                             giv = randint(0, sheet.max_row*sheet.max_column)
                         for u in colIndexAN:
                             sheet.cell(row=i, column=u).value = giv
+                            sheet.cell(row=i, column=u).number_format = 'General'
                         seen.update({giv:sequence})
                         self.wba.active.cell(row=self.wba.active.max_row+1, column=1).value = giv
                         self.wba.active.cell(row=self.wba.active.max_row, column=2).value = sequence
@@ -95,6 +97,7 @@ class Cleaner:
                     else:
                         for u in colIndexAN:
                             sheet.cell(row=i, column=u).value = list(seen.keys())[list(seen.values()).index(sequence)]
+                            sheet.cell(row=i, column=u).number_format = 'General'
                 colIndexminus = []
                 for h in colIndexAN:
                         colIndexminus.append(h-1)
@@ -106,8 +109,7 @@ class Cleaner:
             print('Anonymization failed at row', i,'.')
 
     def purify(self):
-        """Purification function, removes banned characters given by the self.banned list,
-        also removes ',' in integers"""
+        """Purification function, removes banned characters given by the self.banned list"""
         try :
             sheet = self.wb.worksheets[self.sheetN]
             self.maxBytes = sheet.max_column*sheet.max_row
@@ -135,11 +137,11 @@ class Cleaner:
             track = 0
             for i in range(1, sheet.max_column+1):
                 for j in range(2, sheet.max_row+1):
-                    if type(self.convertFloat(sheet.cell(row=j, column=i).value)) is float:
+                    if type(self.convertFloat(str(sheet.cell(row=j, column=i).value))) is float:
                         track=track+1
                         sheet.cell(row=j, column=i).value = float(sheet.cell(row=j, column=i).value)
                         sheet.cell(row=j, column=i).number_format = '0.00'
-                    elif (type(self.convertFloat(sheet.cell(row=j, column=i).value)) is not float) and ("," in str(sheet.cell(row=j, column=i).value)):
+                    elif (type(self.convertFloat(str(sheet.cell(row=j, column=i).value)) is not float)) and ("," in str(sheet.cell(row=j, column=i).value)) and self.checkIsNumber(str(sheet.cell(row=j, column=i).value))=='number':
                         track=track+1
                         sheet.cell(row=j, column=i).value = float(str(sheet.cell(row=j, column=i).value).replace(',','.'))
                         sheet.cell(row=j, column=i).number_format = '0.00'
@@ -368,8 +370,8 @@ class Cleaner:
             for col in sheet.iter_cols(min_row=2, min_col=colIndexC, max_col=colIndexC, max_row=sheet.max_row):
                 for k, cell in enumerate(col):
                     mask = None
-                    if cell.value != 'None':
-                        mask = [mask for n, mask in enumerate(list(changes.keys())) if int(list(changes.values())[n][0]) <= int(cell.value) <= int(list(changes.values())[n][-1])]
+                    if (cell.value not in self.banned) and (cell.value is not None):
+                        mask = [mask for n, mask in enumerate(list(changes.values())) if int(list(changes.keys())[n][0]) <= int(cell.value) <= int(list(changes.keys())[n][-1])]
                         if mask:
                             sheet.cell(row=k+2, column=maxCol).value = mask[0]
                         else:
@@ -388,7 +390,7 @@ class Cleaner:
                 for k, cell in enumerate(col):
                     mask = None
                     if cell.value != 'None':
-                        mask = [mask for n, mask in enumerate(list(changes.keys())) if list(changes.values())[n]==cell.value]
+                        mask = [mask for n, mask in enumerate(list(changes.values())) if list(changes.keys())[n]==cell.value]
                         if mask:
                             sheet.cell(row=k+2, column=maxCol).value = mask[0]
                         else:
@@ -412,6 +414,14 @@ class Cleaner:
             return float(value)
         except:
             return(value)
+
+    def checkIsNumber(self, s):
+        try:
+            for i in s:
+                int(i)
+            return 'number'
+        except:
+            return 'not number'
 
     def timeMachine(self, request, *args):
         """A time machine to allow undo and resets"""
