@@ -20,6 +20,8 @@ class Cleaner:
         self.given = []
         self.taskBytes = 0
         self.maxBytes = 100
+        self.lastFile = ''
+        self.lastIndex = 0
 
     def openWB(self, key, path):
         """ Load and open cleaner workbook:
@@ -27,13 +29,24 @@ class Cleaner:
         2: Open workbook to be aggregated to main workbook
         3: Open open data workbook to be jointed to main workbook
         """
-        mods = {'basic': 1, 'aggreg': 2, 'joint': 3}
+        # mods = {'basic': 1, 'aggreg': 2, 'joint': 3}
         if key == 1:
-            self.wb = openpyxl.load_workbook(path)
-            wbC = self.wb
-            self.wbList.append(wbC)
             if path not in self.pathList:
+                print('a')
+                self.wb = openpyxl.load_workbook(path)
+                self.wbC = openpyxl.load_workbook(path)
+                self.wbList.append(self.wbC)
                 self.pathList.append(path)
+            elif (path in self.pathList) and (len(self.wbList) == len(self.pathList)):
+                print('b')
+            else:
+                print('c')
+                self.lastIndex = self.wbList.index(self.wbC)
+                self.wbC = openpyxl.load_workbook(path)
+                self.wbList.append(self.wbC)
+            print(self.wbList)
+            print(self.pathList)
+            print(self.wb)
         if key == 2:
             self.wb1 = openpyxl.load_workbook(path)
         if key == 3:
@@ -429,17 +442,20 @@ class Cleaner:
             #del self.wbList[-1]
             #os.remove(self.pathList[-1])####LES LIGNES QUI SUPPRIMENT
             #del self.pathList[-1]
-            self.wb = self.wbList[-1]
-            return self.pathList[-1]
+            self.wb = openpyxl.load_workbook(self.pathList[self.lastIndex])
+            self.lastIndex = self.lastIndex-1
+            return self.pathList[self.lastIndex]
         if request == 'pullBack@':
-            self.wb = self.wbList[self.pathList.index(args[0])]
-            return self.pathList[self.pathList.index(args[0])]
+            self.wb = openpyxl.load_workbook(args[0])
+            self.lastIndex = self.pathList.index(args[0])-1
+            return args[0]
         if request == 'fullReset':
             #del self.wbList[1:]
             #for p in self.pathList[1:]: ####Suppriment aussi
                 #os.remove(p)
             #del self.pathList[1:]
-            self.wb = self.wbList[0]
+            self.lastIndex = 0
+            self.wb = openpyxl.load_workbook(0)
             return self.pathList[0]
 
     def dateHexGen(self):
