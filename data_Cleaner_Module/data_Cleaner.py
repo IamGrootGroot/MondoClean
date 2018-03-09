@@ -32,21 +32,16 @@ class Cleaner:
         # mods = {'basic': 1, 'aggreg': 2, 'joint': 3}
         if key == 1:
             if path not in self.pathList:
-                print('a')
                 self.wb = openpyxl.load_workbook(path)
                 self.wbC = openpyxl.load_workbook(path)
                 self.wbList.append(self.wbC)
                 self.pathList.append(path)
             elif (path in self.pathList) and (len(self.wbList) == len(self.pathList)):
-                print('b')
+                pass
             else:
-                print('c')
                 self.lastIndex = self.wbList.index(self.wbC)
                 self.wbC = openpyxl.load_workbook(path)
                 self.wbList.append(self.wbC)
-            print(self.wbList)
-            print(self.pathList)
-            print(self.wb)
         if key == 2:
             self.wb1 = openpyxl.load_workbook(path)
         if key == 3:
@@ -455,7 +450,7 @@ class Cleaner:
                 #os.remove(p)
             #del self.pathList[1:]
             self.lastIndex = 0
-            self.wb = openpyxl.load_workbook(0)
+            self.wb = openpyxl.load_workbook(self.pathList[0])
             return self.pathList[0]
 
     def dateHexGen(self):
