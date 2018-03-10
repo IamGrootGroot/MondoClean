@@ -30,22 +30,33 @@ class Cleaner:
         3: Open open data workbook to be jointed to main workbook
         """
         # mods = {'basic': 1, 'aggreg': 2, 'joint': 3}
-        if key == 1:
-            if path not in self.pathList:
-                self.wb = openpyxl.load_workbook(path)
-                self.wbC = openpyxl.load_workbook(path)
-                self.wbList.append(self.wbC)
-                self.pathList.append(path)
-            elif (path in self.pathList) and (len(self.wbList) == len(self.pathList)):
-                pass
+        try:
+            if path.endswith('.xlsx') or path.endswith('.XLSX'):
+                if key == 1:
+                    if path not in self.pathList:
+                        self.wb = openpyxl.load_workbook(path)
+                        self.wbC = openpyxl.load_workbook(path)
+                        self.wbList.append(self.wbC)
+                        self.pathList.append(path)
+                    elif (path in self.pathList) and (len(self.wbList) == len(self.pathList)):
+                        pass
+                    else:
+                        self.lastIndex = self.wbList.index(self.wbC)
+                        self.wbC = openpyxl.load_workbook(path)
+                        self.wbList.append(self.wbC)
+                if key == 2:
+                    self.wb1 = openpyxl.load_workbook(path)
+                if key == 3:
+                    self.wb2 = openpyxl.load_workbook(path)
+                return ''
             else:
-                self.lastIndex = self.wbList.index(self.wbC)
-                self.wbC = openpyxl.load_workbook(path)
-                self.wbList.append(self.wbC)
-        if key == 2:
-            self.wb1 = openpyxl.load_workbook(path)
-        if key == 3:
-            self.wb2 = openpyxl.load_workbook(path)
+                raise ValueError("Unsupported file format. Please check you can open it with Excel first. Supported formats are: .xlsx,.xlsm,.xltx,.xltm")
+        except ValueError as valerr:
+            return valerr
+        except FileNotFoundError as filerr:
+            return filerr
+        except:
+            return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
 
     def anonymize(self, colIndexAN):
         """ Anonymization function: Sets cell values of given columns to random integer value
@@ -66,7 +77,10 @@ class Cleaner:
             head = ''
             self.wba.active.cell(row=1, column=1).value = 'ID'
             for s in colIndexAN:
-                head += '+'+str(sheet.cell(row=1, column=s).value)
+                if s>sheet.max_column:
+                    raise IndexError("Specified index is higher than the amount of columns.")
+                else:
+                    head += '+'+str(sheet.cell(row=1, column=s).value)
             self.wba.active.cell(row=1, column=2).value = head
             if len(colIndexAN) == 1:
                 for i in range(2, sheet.max_row+1):
@@ -85,7 +99,6 @@ class Cleaner:
                         sheet.cell(row=i, column=colIndexAN[0]).number_format = 'General'
                     self.taskBytes = i-1
                 colHead = {cell.value for n, cell in enumerate(list(sheet.rows)[0]) if n+1 == colIndexAN[0]}
-                print('Succesfully anonymized column', colHead,'.')
             else:
                 for i in range(2, sheet.max_row+1):
                     sequence = ''
@@ -111,10 +124,14 @@ class Cleaner:
                         colIndexminus.append(h-1)
                 colHeads = {cell.value for n, cell in enumerate(list(sheet.rows)[0]) if n in colIndexminus}
                 self.taskBytes = i-1
-                print('Succesfully anonymized columns:', colHeads,'.')
+            return ''
             self.taskBytes = 0
+        except ValueError:
+            return "Error while processing column indexes: "+str(colIndexAN)+", please make sure to provide an integer index."
+        except IndexError as indexerr:
+            return indexerr
         except:
-            print('Anonymization failed at row', i,'.')
+            return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
 
     def purify(self):
         """Purification function, removes banned characters given by the self.banned list"""
@@ -132,9 +149,9 @@ class Cleaner:
                         track=track+1
                     self.taskBytes=self.taskBytes+1
             self.taskBytes = 0
-            print('Sheet purified, edited '+ str(track) +' cells.')
-        except :
-            print('Cleaning banned data failed.')
+            return ''
+        except:
+            return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
 
     def formatNumbers(self):
         """Manages numbers formatting"""
@@ -157,8 +174,9 @@ class Cleaner:
                         pass
                     self.taskBytes=self.taskBytes+1
             self.taskBytes = 0
-        except:
-            print('Failed while formatting numbers.')
+            return ''
+        except :
+            return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
 
 
     def changeDate(self, formatIn): ## TODO INDEX DATE
@@ -190,34 +208,52 @@ class Cleaner:
                 else:
                     self.taskBytes = self.taskBytes+sheet.max_row
             self.taskBytes = 0
-            print('Dates reformatted.')
+            return ''
         except ValueError:
-            print('Error at cell[',k,' ',n+1,'], invalid cell content: ', str(sheet.cell(row=k, column=n+1).value),"""please make sure the formatIn
-            ... represents the actual input date format.""")
+            return 'Error at cell['+str(k)+' '+str(n+1)+'], invalid cell content: ' + str(sheet.cell(row=k, column=n+1).value) + """please make sure the formatIn
+            ... represents the actual input date format."""
+        except :
+            return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
 
     def aggreg(self, paths):
         """Aggregation function, appends different xlsx files @paths, no need to worry about empty or missing columns.
         WARNING: Column names have to be the same as the ones in the main workbook"""
-        sheet = self.wb.worksheets[self.sheetN]
-        self.maxBytes = len(paths)
-        self.taskBytes = 0
-        headers = list(sheet.rows)[0]
-        for i, p in enumerate(paths):
-            wbb = openpyxl.load_workbook(p)
-            sheetB = wbb.active
-            headersB = list(sheetB.rows)[0]
-            patch_row = sheet.max_row
-            for n, head in enumerate(headers):
-                for k, headB in enumerate(headersB):
-                    if headB.value == head.value:
-                        for j in range(2, sheetB.max_row+1):
-                            sheet.cell(row=patch_row+j-1, column=n+1).value = sheetB.cell(row=j, column=k+1).value
-            self.taskBytes = i+1
-        self.taskBytes = 0
+        try:
+            for s in paths:
+                if s.endswith('.xlsx') or s.endswith('.XLSX'):
+                    continue
+                else:
+                    raise ValueError("Unsupported file format for file: "+s+". Please make sure you can open it with Excel first. Supported formats are: .xlsx,.xlsm,.xltx,.xltm")
+            sheet = self.wb.worksheets[self.sheetN]
+            self.maxBytes = len(paths)
+            self.taskBytes = 0
+            headers = list(sheet.rows)[0]
+            for i, p in enumerate(paths):
+                wbb = openpyxl.load_workbook(p)
+                sheetB = wbb.active
+                headersB = list(sheetB.rows)[0]
+                patch_row = sheet.max_row
+                for n, head in enumerate(headers):
+                    for k, headB in enumerate(headersB):
+                        if headB.value == head.value:
+                            for j in range(2, sheetB.max_row+1):
+                                sheet.cell(row=patch_row+j-1, column=n+1).value = sheetB.cell(row=j, column=k+1).value
+                self.taskBytes = i+1
+            self.taskBytes = 0
+        except ValueError as valerr:
+            return valerr
+        except FileNotFoundError as filerr:
+            return filerr
+        except:
+            return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
 
     def param(self, listBans):
         """Add new banned characters"""
-        self.banned = self.banned + listBans
+        try:
+            self.banned = self.banned + listBans
+            return ''
+        except:
+            return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
 
     def lock(self):
         """Lock sheet"""
@@ -226,9 +262,9 @@ class Cleaner:
                 self.wb.protection.sheet = False
             else:
                 self.wb.protection.sheet = True
-            print('Worbook succesfully locked.')
+            return ''
         except:
-            print('Locking failed.')
+            return 'Locking failed.'
 
     def doublons(self, columns):
         """Identifies duplicates and highlights them"""
@@ -236,6 +272,9 @@ class Cleaner:
             uniq = {}
             dupes = []
             sheet = self.wb.worksheets[self.sheetN]
+            for s in columns:
+                if s>sheet.max_column:
+                    raise IndexError("Specified index is higher than the amount of columns.")
             self.maxBytes = len(columns)*sheet.max_row
             self.taskBytes = 0
             maxCol = sheet.max_column+1
@@ -255,158 +294,218 @@ class Cleaner:
                     sheet.cell(row=i, column=j).fill = openpyxl.styles.PatternFill('solid', openpyxl.styles.colors.RED)
                     sheet.cell(row=i, column=maxCol).value = 'Doublon'
             self.taskBytes = 0
+            return ''
+        except ValueError:
+            return "Error while processing column indexes: "+str(columns)+", please make sure to provide an integer index."
+        except IndexError as indexerr:
+            return indexerr
         except:
-            print("Can't find duplicates.")
+            return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
 
     def count(self, colIndex):
         """Counts the number of occurences of a given
         combination of column values and write that amount in the last column"""
-        sheet = self.wb.worksheets[self.sheetN]
-        self.maxBytes = sheet.max_row*2
-        self.taskBytes = 0
-        sequences = []
-        colCount = sheet.max_column+1
-        sheet.cell(row=1, column=colCount).value = 'COUNT'
-        for k, row in enumerate(sheet.iter_rows()):
-            sequence = ''
-            if k>0:
-                for n, cell in enumerate(row):
-                    if n+1 in colIndex:
-                        sequence += str(cell.value)
-                sequences.append(sequence)
-                self.taskBytes = self.taskBytes+1
-        occurences = Counter(sequences)
-        for n, s in enumerate(sequences):
-            if s in occurences.keys():
-                sheet.cell(row=n+2, column=colCount).value = occurences.get(s)
-                self.taskBytes = self.taskBytes+1
-        self.taskBytes = 0
+        try:
+            sheet = self.wb.worksheets[self.sheetN]
+            for s in colIndex:
+                if s>sheet.max_column:
+                    raise IndexError("Specified index is higher than the amount of columns.")
+            self.maxBytes = sheet.max_row*2
+            self.taskBytes = 0
+            sequences = []
+            colCount = sheet.max_column+1
+            sheet.cell(row=1, column=colCount).value = 'COUNT'
+            for k, row in enumerate(sheet.iter_rows()):
+                sequence = ''
+                if k>0:
+                    for n, cell in enumerate(row):
+                        if n+1 in colIndex:
+                            sequence += str(cell.value)
+                    sequences.append(sequence)
+                    self.taskBytes = self.taskBytes+1
+            occurences = Counter(sequences)
+            for n, s in enumerate(sequences):
+                if s in occurences.keys():
+                    sheet.cell(row=n+2, column=colCount).value = occurences.get(s)
+                    self.taskBytes = self.taskBytes+1
+            self.taskBytes = 0
+        except ValueError:
+            return "Error while processing column indexes: "+str(colIndex)+", please make sure to provide an integer index."
+        except IndexError as indexerr:
+            return indexerr
+        except :
+            return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
+
 
     def summ(self, colIndex, colAdd):
         """Sum of values @colAdd for same occurences of a given combination"""
-        sheet = self.wb.worksheets[self.sheetN]
-        self.maxBytes = sheet.max_row*2
-        self.taskBytes = 0
-        sequences = {}
-        colCount = sheet.max_column+1
-        sheet.cell(row=1, column=colCount).value = 'SUM'
-        for k, row in enumerate(sheet.iter_rows()):
-            sequence = ''
-            if k>0:
+        try:
+            sheet = self.wb.worksheets[self.sheetN]
+            for s in colIndex:
+                if s>sheet.max_column:
+                    raise IndexError("One of the specified indexes for the combination is higher than the amount of columns.")
+            for s in colAdd:
+                if s>sheet.max_column:
+                    raise IndexError("The specified index for the summ is higher than the amount of columns.")
+            self.maxBytes = sheet.max_row*2
+            self.taskBytes = 0
+            sequences = {}
+            colCount = sheet.max_column+1
+            sheet.cell(row=1, column=colCount).value = 'SUM'
+            for k, row in enumerate(sheet.iter_rows()):
+                sequence = ''
+                if k>0:
+                    for n, cell in enumerate(row):
+                        if n+1 in colIndex:
+                            sequence += str(cell.value)
+                        if n+1==colAdd:
+                            val = float(cell.value)   #Has to be numerical
+                    if sequence in sequences:
+                        sequences[sequence]+=val
+                    else:
+                        sequences.update({sequence:val})
+                self.taskBytes = self.taskBytes+1
+            for k, row in enumerate(sheet.iter_rows()):
+                sequence = ''
                 for n, cell in enumerate(row):
                     if n+1 in colIndex:
                         sequence += str(cell.value)
-                    if n+1==colAdd:
-                        val = float(cell.value)   #Has to be numerical
                 if sequence in sequences:
-                    sequences[sequence]+=val
-                else:
-                    sequences.update({sequence:val})
-            self.taskBytes = self.taskBytes+1
-        for k, row in enumerate(sheet.iter_rows()):
-            sequence = ''
-            for n, cell in enumerate(row):
-                if n+1 in colIndex:
-                    sequence += str(cell.value)
-            if sequence in sequences:
-                sheet.cell(row=k+1, column=colCount).value = sequences.get(sequence)
-            self.taskBytes = self.taskBytes+1
-        self.taskBytes = 0
+                    sheet.cell(row=k+1, column=colCount).value = sequences.get(sequence)
+                self.taskBytes = self.taskBytes+1
+            self.taskBytes = 0
+        except ValueError:
+            return "Error while processing column indexes, please make sure to provide an integer index."
+        except IndexError as indexerr:
+            return indexerr
+        except:
+            return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
 
     def joint(self, path, colComp1, colComp2, colJoints):
         """Joint opendata @path. Finds matching values between colComp1 and colComp2
         and add the data in colJoint at matching index"""
-        cleaner2 = Cleaner()
-        cleaner2.openWB(1,path)
-        cleaner2.purify()
-        cleaner2.changeDate(None)
-        sheetB = cleaner2.wb.worksheets[cleaner2.sheetN]
-        sheet = self.wb.worksheets[self.sheetN]
-        self.maxBytes = sheet.max_row
-        self.taskBytes = 0
-        mr = sheet.max_row
-        mb = sheetB.max_row
-        mc = sheet.max_column
-        heads = []
-        for row in sheetB.iter_rows(min_row=1, max_row=1):
-            for n, cell in enumerate(row):
-                if n+1 in colJoints:
-                    heads.append(str(cell.value))
-        colc1 = []
-        colc2 = []
-        colj = []
-        for col1 in sheet.iter_cols(min_row=2, min_col=colComp1, max_col=colComp1, max_row=mr):
-            for cell1 in col1:
-                colc1.append(cell1.value)
-        for col2 in sheetB.iter_cols(min_row=2, min_col=colComp2, max_col=colComp2, max_row=mb):
-            for i, cell2 in enumerate(col2):
-                joints = []
-                colc2.append(cell2.value)
-                for k in range(len(colJoints)):
-                    for rowJ in sheetB.iter_rows(min_row=i+2, min_col=colJoints[k], max_col=colJoints[k], max_row=i+2):
-                        for cell3 in rowJ:
-                            joints.append(cell3.value)
-                colj.append(joints)
-        idx = {}
-        for j in range(len(colc2)):
-            i = 0
-            while colc1[i]!=colc2[j] and i<len(colc1)-1:
-                i = i+1
-            if i>=len(colc1):
-                pass
+        try:
+            if path.endswith('.xlsx') or path.endswith('.XLSX'):
+                cleaner2 = Cleaner()
+                cleaner2.openWB(1,path)
+                cleaner2.purify()
+                cleaner2.changeDate(None)
+                sheetB = cleaner2.wb.worksheets[cleaner2.sheetN]
+                sheet = self.wb.worksheets[self.sheetN]
+                if colComp1>sheet.max_column:
+                    raise IndexError("Specified index for matching main file is higher than the amount of columns.")
+                if colComp2>sheetB.max_column:
+                    raise IndexError("Specified index for matching joint file is higher than the amount of columns.")
+                for s in colJoints:
+                    if s>sheetB.max_column:
+                        raise IndexError("Specified index for adding joint data is higher than the amount of columns.")
+                self.maxBytes = sheet.max_row
+                self.taskBytes = 0
+                mr = sheet.max_row
+                mb = sheetB.max_row
+                mc = sheet.max_column
+                heads = []
+                for row in sheetB.iter_rows(min_row=1, max_row=1):
+                    for n, cell in enumerate(row):
+                        if n+1 in colJoints:
+                            heads.append(str(cell.value))
+                colc1 = []
+                colc2 = []
+                colj = []
+                for col1 in sheet.iter_cols(min_row=2, min_col=colComp1, max_col=colComp1, max_row=mr):
+                    for cell1 in col1:
+                        colc1.append(cell1.value)
+                for col2 in sheetB.iter_cols(min_row=2, min_col=colComp2, max_col=colComp2, max_row=mb):
+                    for i, cell2 in enumerate(col2):
+                        joints = []
+                        colc2.append(cell2.value)
+                        for k in range(len(colJoints)):
+                            for rowJ in sheetB.iter_rows(min_row=i+2, min_col=colJoints[k], max_col=colJoints[k], max_row=i+2):
+                                for cell3 in rowJ:
+                                    joints.append(cell3.value)
+                        colj.append(joints)
+                idx = {}
+                for j in range(len(colc2)):
+                    i = 0
+                    while colc1[i]!=colc2[j] and i<len(colc1)-1:
+                        i = i+1
+                    if i>=len(colc1):
+                        pass
+                    else:
+                        idx.update({i:colj[j]})
+                    self.taskBytes = j+1
+                self.maxBytes = len(idx.keys())*len(colJoints)
+                for i, j in enumerate(idx.keys()):
+                    for k in range(len(colJoints)):
+                        sheet.cell(row=j+2, column=k+1+mc).value = idx.get(j)[k]
+                        self.taskBytes = self.taskBytes+1
+                self.taskBytes = 0
+                for n, s in enumerate(heads):
+                    sheet.cell(row=1, column=n+1+mc).value = s
+                return ''
             else:
-                idx.update({i:colj[j]})
-            self.taskBytes = j+1
-        self.maxBytes = len(idx.keys())*len(colJoints)
-        for i, j in enumerate(idx.keys()):
-            for k in range(len(colJoints)):
-                sheet.cell(row=j+2, column=k+1+mc).value = idx.get(j)[k]
-                self.taskBytes = self.taskBytes+1
-        self.taskBytes = 0
-        for n, s in enumerate(heads):
-            sheet.cell(row=1, column=n+1+mc).value = s
+                raise ValueError("Unsupported file format. Please check you can open it with Excel first. Supported formats are: .xlsx,.xlsm,.xltx,.xltm")
+        except ValueError as valerr:
+            return valerr
+        except FileNotFoundError as filerr:
+            return filerr
+        except IndexError as indexerr:
+            return indexerr
+        except:
+            return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
 
     def categorize(self, mod, colIndexC, changes):
         """Catégorisation, changes cell values @column
         colIndexC to the corresponding key in the changes dict"""
-        if mod == "numerical":
-            sheet = self.wb.worksheets[self.sheetN]
-            maxCol = sheet.max_column+1
-            self.maxBytes = sheet.max_row
-            self.taskBytes = 0
-            sheet.cell(row=1, column=maxCol).value = "CATEG "+str(sheet.cell(row=1, column=colIndexC).value)
-            for col in sheet.iter_cols(min_row=2, min_col=colIndexC, max_col=colIndexC, max_row=sheet.max_row):
-                for k, cell in enumerate(col):
-                    mask = None
-                    if (cell.value not in self.banned) and (cell.value is not None):
-                        mask = [mask for n, mask in enumerate(list(changes.values())) if int(list(changes.keys())[n][0]) <= int(cell.value) <= int(list(changes.keys())[n][-1])]
-                        if mask:
-                            sheet.cell(row=k+2, column=maxCol).value = mask[0]
+        try:
+            if mod == "numerical":
+                sheet = self.wb.worksheets[self.sheetN]
+                if colIndexC>sheet.max_column:
+                    raise IndexError("Specified index is higher than the amount of columns.")
+                maxCol = sheet.max_column+1
+                self.maxBytes = sheet.max_row
+                self.taskBytes = 0
+                sheet.cell(row=1, column=maxCol).value = "CATEG "+str(sheet.cell(row=1, column=colIndexC).value)
+                for col in sheet.iter_cols(min_row=2, min_col=colIndexC, max_col=colIndexC, max_row=sheet.max_row):
+                    for k, cell in enumerate(col):
+                        mask = None
+                        if (cell.value not in self.banned) and (cell.value is not None):
+                            mask = [mask for n, mask in enumerate(list(changes.values())) if int(list(changes.keys())[n][0]) <= int(cell.value) <= int(list(changes.keys())[n][-1])]
+                            if mask:
+                                sheet.cell(row=k+2, column=maxCol).value = mask[0]
+                            else:
+                                pass
                         else:
                             pass
-                    else:
-                        pass
-                self.taskBytes = self.taskBytes+1
-            self.taskBytes = 0
-        if mod == "substitute":
-            sheet = self.wb.worksheets[self.sheetN]
-            maxCol = sheet.max_column+1
-            self.maxBytes = sheet.max_row
-            self.taskBytes = 0
-            sheet.cell(row=1, column=maxCol).value = "CATEG "+str(sheet.cell(row=1, column=colIndexC).value)
-            for col in sheet.iter_cols(min_row=2, min_col=colIndexC, max_col=colIndexC, max_row=sheet.max_row):
-                for k, cell in enumerate(col):
-                    mask = None
-                    if cell.value != 'None':
-                        mask = [mask for n, mask in enumerate(list(changes.values())) if list(changes.keys())[n]==cell.value]
-                        if mask:
-                            sheet.cell(row=k+2, column=maxCol).value = mask[0]
+                    self.taskBytes = self.taskBytes+1
+                self.taskBytes = 0
+            if mod == "substitute":
+                sheet = self.wb.worksheets[self.sheetN]
+                if colIndexC>sheet.max_column:
+                    raise IndexError("Specified index is higher than the amount of columns.")
+                maxCol = sheet.max_column+1
+                self.maxBytes = sheet.max_row
+                self.taskBytes = 0
+                sheet.cell(row=1, column=maxCol).value = "CATEG "+str(sheet.cell(row=1, column=colIndexC).value)
+                for col in sheet.iter_cols(min_row=2, min_col=colIndexC, max_col=colIndexC, max_row=sheet.max_row):
+                    for k, cell in enumerate(col):
+                        mask = None
+                        if cell.value != 'None':
+                            mask = [mask for n, mask in enumerate(list(changes.values())) if list(changes.keys())[n]==cell.value]
+                            if mask:
+                                sheet.cell(row=k+2, column=maxCol).value = mask[0]
+                            else:
+                                pass
                         else:
                             pass
-                    else:
-                        pass
-                self.taskBytes = self.taskBytes+1
-            self.taskBytes = 0
+                    self.taskBytes = self.taskBytes+1
+                self.taskBytes = 0
+        except IndexError as indexerr:
+            return indexerr
+        except ValueError:
+            return "Error while processing column indexes, please make sure to provide an integer index."
+        except:
+            return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
 
     def addIndex(self):
         sheet = self.wb.worksheets[self.sheetN]
@@ -433,25 +532,30 @@ class Cleaner:
 
     def timeMachine(self, request, *args):
         """A time machine to allow undo and resets"""
-        if request == 'pullBack':
-            #del self.wbList[-1]
-            #os.remove(self.pathList[-1])####LES LIGNES QUI SUPPRIMENT
-            #del self.pathList[-1]
-            self.wb = openpyxl.load_workbook(self.pathList[self.lastIndex])
-            self.lastIndex = self.lastIndex-1
-            return self.pathList[self.lastIndex]
-        if request == 'pullBack@':
-            self.wb = openpyxl.load_workbook(args[0])
-            self.lastIndex = self.pathList.index(args[0])-1
-            return args[0]
-        if request == 'fullReset':
-            #del self.wbList[1:]
-            #for p in self.pathList[1:]: ####Suppriment aussi
-                #os.remove(p)
-            #del self.pathList[1:]
-            self.lastIndex = 0
-            self.wb = openpyxl.load_workbook(self.pathList[0])
-            return self.pathList[0]
+        try:
+            if request == 'pullBack':
+                #del self.wbList[-1]
+                #os.remove(self.pathList[-1])####LES LIGNES QUI SUPPRIMENT
+                #del self.pathList[-1]
+                self.wb = openpyxl.load_workbook(self.pathList[self.lastIndex])
+                self.lastIndex = self.lastIndex-1
+                if self.lastIndex == -1:
+                    self.lastIndex = 0
+                return self.pathList[self.lastIndex]
+            if request == 'pullBack@':
+                self.wb = openpyxl.load_workbook(args[0])
+                self.lastIndex = self.pathList.index(args[0])-1
+                return args[0]
+            if request == 'fullReset':
+                #del self.wbList[1:]
+                #for p in self.pathList[1:]: ####Suppriment aussi
+                    #os.remove(p)
+                #del self.pathList[1:]
+                self.lastIndex = 0
+                self.wb = openpyxl.load_workbook(self.pathList[0])
+                return self.pathList[0]
+        except:
+            return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
 
     def dateHexGen(self):
         """Hex key generator for dateStyle"""
@@ -472,7 +576,7 @@ class Cleaner:
             if key == 1:
                 self.wb.save(newPath)
                 self.pathList.append(newPath)
-                print('Succesfully saved at: ', newPath)
+                return 'Succesfully saved at: '+newPath
             else:
                 self.wb.save(newPath)
                 self.pathList.append(newPath)
@@ -480,6 +584,6 @@ class Cleaner:
                 pathWBA = newPath[:index] + '_ID' + newPath[index:]
                 self.wb.save(newPath)
                 self.wba.save(pathWBA)
-                print('Succesfully saved both files at:', newPath, 'and', pathWBA,'.')
+                return 'Succesfully saved both files at:'+newPath+ 'and'+pathWBA+'.'
         except:
-            print("Incorrect path :", newPath,'.')
+            return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
