@@ -151,7 +151,7 @@ class Cleaner:
             self.taskBytes = 0
             return ''
         except:
-            return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1]) + " at cell: [" + j + i + "]"
+            return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1]) + " at cell: [" + str(j) + str(i) + "]"
 
     def formatNumbers(self):
         """Manages numbers formatting"""
@@ -176,7 +176,7 @@ class Cleaner:
             self.taskBytes = 0
             return ''
         except :
-            return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1]) + " at cell: [" + j + i + "]"
+            return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1]) + " at cell: [" + str(j) + str(i) + "]"
 
 
     def changeDate(self, formatIn): ## TODO INDEX DATE
