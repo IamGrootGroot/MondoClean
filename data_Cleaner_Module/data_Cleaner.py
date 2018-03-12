@@ -504,6 +504,7 @@ class Cleaner:
                             pass
                     self.taskBytes = self.taskBytes+1
                 self.taskBytes = 0
+            return ''
         except IndexError as indexerr:
             return indexerr
         except ValueError:
