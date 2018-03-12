@@ -198,6 +198,10 @@ class Cleaner:
                                     sheet.cell(row=k, column=n+1).value = str(sheet.cell(row=k, column=n+1).value).replace(' ','')
                                 if '.' in str(sheet.cell(row=k, column=n+1).value):
                                     sheet.cell(row=k, column=n+1).value = str(sheet.cell(row=k, column=n+1).value).replace('.','')
+                                if '/' in str(sheet.cell(row=k, column=n+1).value):
+                                    sheet.cell(row=k, column=n+1).value = str(sheet.cell(row=k, column=n+1).value).replace('/','')
+                                if '-' in str(sheet.cell(row=k, column=n+1).value):
+                                    sheet.cell(row=k, column=n+1).value = str(sheet.cell(row=k, column=n+1).value).replace('-','')
                                 dateObject = datetime.strptime(str(sheet.cell(row=k, column=n+1).value),formatIn)
                                 sheet.cell(row=k, column=n+1).value = dateObject.strptime(dateObject.strftime('%d/%m/%Y'),'%d/%m/%Y')
                                 sheet.cell(row=k, column=n+1).style = dateStyleTag
