@@ -52,9 +52,9 @@ class Cleaner:
             else:
                 raise ValueError("Unsupported file format. Please check you can open it with Excel first. Supported formats are: .xlsx,.xlsm,.xltx,.xltm")
         except ValueError as valerr:
-            return valerr
+            return str(valerr)
         except FileNotFoundError as filerr:
-            return filerr
+            return str(filerr)
         except:
             return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
 
@@ -129,7 +129,7 @@ class Cleaner:
         except ValueError:
             return "Error while processing column indexes: "+str(colIndexAN)+", please make sure to provide an integer index."
         except IndexError as indexerr:
-            return indexerr
+            return str(indexerr)
         except:
             return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
 
@@ -246,9 +246,9 @@ class Cleaner:
                 self.taskBytes = i+1
             self.taskBytes = 0
         except ValueError as valerr:
-            return valerr
+            return str(valerr)
         except FileNotFoundError as filerr:
-            return filerr
+            return str(filerr)
         except:
             return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
 
@@ -303,7 +303,7 @@ class Cleaner:
         except ValueError:
             return "Error while processing column indexes: "+str(columns)+", please make sure to provide an integer index."
         except IndexError as indexerr:
-            return indexerr
+            return str(indexerr)
         except:
             return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
 
@@ -337,7 +337,7 @@ class Cleaner:
         except ValueError:
             return "Error while processing column indexes: "+str(colIndex)+", please make sure to provide an integer index."
         except IndexError as indexerr:
-            return indexerr
+            return str(indexerr)
         except :
             return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
 
@@ -382,7 +382,7 @@ class Cleaner:
         except ValueError:
             return "Error while processing column indexes, please make sure to provide an integer index."
         except IndexError as indexerr:
-            return indexerr
+            return str(indexerr)
         except:
             return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
 
@@ -404,11 +404,11 @@ class Cleaner:
                 for s in colJoints:
                     if s>sheetB.max_column:
                         raise IndexError("Specified index for adding joint data is higher than the amount of columns.")
-                self.maxBytes = sheet.max_row
                 self.taskBytes = 0
                 mr = sheet.max_row
                 mb = sheetB.max_row
                 mc = sheet.max_column
+                self.maxBytes = mr+mb
                 heads = []
                 for row in sheetB.iter_rows(min_row=1, max_row=1):
                     for n, cell in enumerate(row):
@@ -420,6 +420,7 @@ class Cleaner:
                 for col1 in sheet.iter_cols(min_row=2, min_col=colComp1, max_col=colComp1, max_row=mr):
                     for cell1 in col1:
                         colc1.append(cell1.value)
+                    self.taskBytes = self.taskBytes+1
                 for col2 in sheetB.iter_cols(min_row=2, min_col=colComp2, max_col=colComp2, max_row=mb):
                     for i, cell2 in enumerate(col2):
                         joints = []
@@ -429,16 +430,16 @@ class Cleaner:
                                 for cell3 in rowJ:
                                     joints.append(cell3.value)
                         colj.append(joints)
+                    self.taskBytes = self.taskBytes+1
                 idx = {}
-                for j in range(len(colc2)):
-                    i = 0
-                    while colc1[i]!=colc2[j] and i<len(colc1)-1:
-                        i = i+1
-                    if i>=len(colc1):
-                        pass
-                    else:
-                        idx.update({i:colj[j]})
-                    self.taskBytes = j+1
+                self.taskBytes = 0
+                self.maxBytes = len(colc1)*len(colc2)
+                for i in range(len(colc1)):
+                    for j in range(len(colc2)):
+                        if colc1[i]==colc2[j]:
+                            idx.update({i:colj[j]})
+                        self.taskBytes = self.taskBytes+1
+                self.taskBytes = 0
                 self.maxBytes = len(idx.keys())*len(colJoints)
                 for i, j in enumerate(idx.keys()):
                     for k in range(len(colJoints)):
@@ -451,11 +452,11 @@ class Cleaner:
             else:
                 raise ValueError("Unsupported file format. Please check you can open it with Excel first. Supported formats are: .xlsx,.xlsm,.xltx,.xltm")
         except ValueError as valerr:
-            return valerr
+            return str(valerr)
         except FileNotFoundError as filerr:
-            return filerr
+            return str(filerr)
         except IndexError as indexerr:
-            return indexerr
+            return str(indexerr)
         except:
             return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
 
@@ -507,7 +508,7 @@ class Cleaner:
                 self.taskBytes = 0
             return ''
         except IndexError as indexerr:
-            return indexerr
+            return str(indexerr)
         except ValueError:
             return "Error while processing column indexes, please make sure to provide an integer index."
         except:
