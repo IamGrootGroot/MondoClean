@@ -322,7 +322,7 @@ class Cleaner:
             self.taskBytes = 0
             sequences = []
             colCount = sheet.max_column+1
-            sheet.cell(row=1, column=colCount).value = 'COUNT'
+            sheet.cell(row=1, column=colCount).value = 'FREQUENCE'
             for k, row in enumerate(sheet.iter_rows()):
                 sequence = ''
                 if k>0:
@@ -359,7 +359,7 @@ class Cleaner:
             self.taskBytes = 0
             sequences = {}
             colCount = sheet.max_column+1
-            sheet.cell(row=1, column=colCount).value = 'SUM'
+            sheet.cell(row=1, column=colCount).value = 'SOMME'
             for k, row in enumerate(sheet.iter_rows()):
                 sequence = ''
                 if k>0:
