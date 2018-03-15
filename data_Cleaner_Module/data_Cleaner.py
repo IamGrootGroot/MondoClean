@@ -91,6 +91,7 @@ class Cleaner:
                         seen.update({giv:sheet.cell(row=i, column=colIndexAN[0]).value})
                         self.wba.active.cell(row=self.wba.active.max_row+1, column=1).value = giv
                         self.wba.active.cell(row=self.wba.active.max_row, column=2).value = sheet.cell(row=i, column=colIndexAN[0]).value
+                        self.wba.active.cell(row=self.wba.active.max_row, column=2).number_format = '0.00'
                         sheet.cell(row=i, column=colIndexAN[0]).value = giv
                         sheet.cell(row=i, column=colIndexAN[0]).number_format = '0.00'
                         self.given.append(giv)
@@ -114,6 +115,7 @@ class Cleaner:
                         seen.update({giv:sequence})
                         self.wba.active.cell(row=self.wba.active.max_row+1, column=1).value = giv
                         self.wba.active.cell(row=self.wba.active.max_row, column=2).value = sequence
+                        self.wba.active.cell(row=self.wba.active.max_row, column=2).number_format = '0.00'
                         self.given.append(giv)
                     else:
                         for u in colIndexAN:
