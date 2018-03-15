@@ -92,11 +92,11 @@ class Cleaner:
                         self.wba.active.cell(row=self.wba.active.max_row+1, column=1).value = giv
                         self.wba.active.cell(row=self.wba.active.max_row, column=2).value = sheet.cell(row=i, column=colIndexAN[0]).value
                         sheet.cell(row=i, column=colIndexAN[0]).value = giv
-                        sheet.cell(row=i, column=colIndexAN[0]).number_format = 'General'
+                        sheet.cell(row=i, column=colIndexAN[0]).number_format = '0.00'
                         self.given.append(giv)
                     else:
                         sheet.cell(row=i, column=colIndexAN[0]).value = list(seen.keys())[list(seen.values()).index(sheet.cell(row=i, column=colIndexAN[0]).value)]
-                        sheet.cell(row=i, column=colIndexAN[0]).number_format = 'General'
+                        sheet.cell(row=i, column=colIndexAN[0]).number_format = '0.00'
                     self.taskBytes = i-1
                 colHead = {cell.value for n, cell in enumerate(list(sheet.rows)[0]) if n+1 == colIndexAN[0]}
             else:
@@ -110,7 +110,7 @@ class Cleaner:
                             giv = randint(0, sheet.max_row*sheet.max_column)
                         for u in colIndexAN:
                             sheet.cell(row=i, column=u).value = giv
-                            sheet.cell(row=i, column=u).number_format = 'General'
+                            sheet.cell(row=i, column=u).number_format = '0.00'
                         seen.update({giv:sequence})
                         self.wba.active.cell(row=self.wba.active.max_row+1, column=1).value = giv
                         self.wba.active.cell(row=self.wba.active.max_row, column=2).value = sequence
@@ -118,7 +118,7 @@ class Cleaner:
                     else:
                         for u in colIndexAN:
                             sheet.cell(row=i, column=u).value = list(seen.keys())[list(seen.values()).index(sequence)]
-                            sheet.cell(row=i, column=u).number_format = 'General'
+                            sheet.cell(row=i, column=u).number_format = '0.00'
                 colIndexminus = []
                 for h in colIndexAN:
                         colIndexminus.append(h-1)
@@ -144,7 +144,7 @@ class Cleaner:
                 for j in range(2, sheet.max_row+1):
                     if type(sheet.cell(row=j, column=i).value) is str:
                         sheet.cell(row=j, column=i).value = sheet.cell(row=j, column=i).value.strip()
-                    if sheet.cell(row=j, column=i).value in self.banned:
+                    if str(sheet.cell(row=j, column=i).value) in self.banned:
                         sheet.cell(row=j, column=i).value = None
                         track=track+1
                     self.taskBytes=self.taskBytes+1
@@ -245,6 +245,7 @@ class Cleaner:
                                 sheet.cell(row=patch_row+j-1, column=n+1).value = sheetB.cell(row=j, column=k+1).value
                 self.taskBytes = i+1
             self.taskBytes = 0
+            return ''
         except ValueError as valerr:
             return str(valerr)
         except FileNotFoundError as filerr:
@@ -334,6 +335,7 @@ class Cleaner:
                     sheet.cell(row=n+2, column=colCount).value = occurences.get(s)
                     self.taskBytes = self.taskBytes+1
             self.taskBytes = 0
+            return ''
         except ValueError:
             return "Error while processing column indexes: "+str(colIndex)+", please make sure to provide an integer index."
         except IndexError as indexerr:
@@ -349,8 +351,7 @@ class Cleaner:
             for s in colIndex:
                 if s>sheet.max_column:
                     raise IndexError("One of the specified indexes for the combination is higher than the amount of columns.")
-            for s in colAdd:
-                if s>sheet.max_column:
+            if colAdd>sheet.max_column:
                     raise IndexError("The specified index for the summ is higher than the amount of columns.")
             self.maxBytes = sheet.max_row*2
             self.taskBytes = 0
@@ -379,6 +380,7 @@ class Cleaner:
                     sheet.cell(row=k+1, column=colCount).value = sequences.get(sequence)
                 self.taskBytes = self.taskBytes+1
             self.taskBytes = 0
+            return ''
         except ValueError:
             return "Error while processing column indexes, please make sure to provide an integer index."
         except IndexError as indexerr:
@@ -515,13 +517,21 @@ class Cleaner:
             return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
 
     def addIndex(self):
-        sheet = self.wb.worksheets[self.sheetN]
-        self.maxBytes = sheet.max_column*sheet.max_row
-        self.taskBytes = 0
-        track = 0;
-        for row in sheet.iter_rows(max_row=1):
-            for n, cell in enumerate(row):
-                cell.value = str(n+1)+' '+cell.value
+        try:
+            sheet = self.wb.worksheets[self.sheetN]
+            self.maxBytes = sheet.max_column*sheet.max_row
+            self.taskBytes = 0
+            track = 0;
+            for row in sheet.iter_rows(max_row=1):
+                for n, cell in enumerate(row):
+                    l = len(str(n+1))
+                    if str(cell.value)[0:l] != str(n+1):
+                        cell.value = str(n+1)+' '+cell.value
+                    else:
+                        pass
+            return ''
+        except:
+            return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
 
     def convertFloat(self, value):
         try:
@@ -573,6 +583,13 @@ class Cleaner:
 
     def getProgress(self):
         return (self.taskBytes*100)/self.maxBytes
+
+    def resetBanned(self):
+        try:
+            self.banned = ['.',' ','#N/A','#DIV/0','inconnu','?','NA','None']
+            return ''
+        except:
+            return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
 
     def saveWB(self, key, newPath):
         """Save workbook:
