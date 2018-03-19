@@ -50,12 +50,15 @@ class Cleaner:
                     self.wb2 = openpyxl.load_workbook(path)
                 return ''
             else:
-                raise ValueError("Unsupported file format. Please check you can open it with Excel first. Supported formats are: .xlsx,.xlsm,.xltx,.xltm")
+                raise ValueError("Le format de fichier n'est pas supporté. L'application supporte uniquement les formats: .xlsx,.xlsm,.xltx,.xltm")
         except ValueError as valerr:
+            self.taskBytes = 0
             return valerr
         except FileNotFoundError as filerr:
+            self.taskBytes = 0
             return filerr
         except:
+            self.taskBytes = 0
             return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
 
     def anonymize(self, colIndexAN):
@@ -78,9 +81,9 @@ class Cleaner:
             self.wba.active.cell(row=1, column=1).value = 'ID'
             for s in colIndexAN:
                 if s>sheet.max_column:
-                    raise IndexError("Specified index is higher than the amount of columns.")
+                    raise IndexError("L'index spécifié est supérieur aux nombres de colonnes du fichier")
                 if type(s) is not int:
-                    raise TypeError("Wrong type of index.")
+                    raise TypeError("Le type pour l'index n'est pas respecté")
                 else:
                     head += '+'+str(sheet.cell(row=1, column=s).value)
             self.wba.active.cell(row=1, column=2).value = head
@@ -131,12 +134,16 @@ class Cleaner:
             return ''
             self.taskBytes = 0
         except ValueError:
-            return "Error while processing column indexes: "+str(colIndexAN)+", please make sure to provide an integer index."
+            self.taskBytes = 0
+            return "Erreur de la lecture des index: "+str(colIndexAN)+", vérifier que l'index spécifié est un nombre."
         except TypeError as typerr:
+            self.taskBytes = 0
             return typerr
         except IndexError as indexerr:
+            self.taskBytes = 0
             return indexerr
         except:
+            self.taskBytes = 0
             return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
 
     def purify(self):
@@ -157,6 +164,7 @@ class Cleaner:
             self.taskBytes = 0
             return ''
         except:
+            self.taskBytes = 0
             return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1]) + " at cell: [" + str(j) + " " + str(i) + "]"
 
     def formatNumbers(self):
@@ -182,6 +190,7 @@ class Cleaner:
             self.taskBytes = 0
             return ''
         except :
+            self.taskBytes = 0
             return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1]) + " at cell: [" + str(j) + " " + str(i) + "]"
 
 
@@ -221,9 +230,10 @@ class Cleaner:
             self.taskBytes = 0
             return ''
         except ValueError:
-            return 'Error at cell['+str(k)+' '+str(n+1)+'], invalid cell content: ' + str(sheet.cell(row=k, column=n+1).value) + """please make sure the formatIn
-            ... represents the actual input date format."""
+            self.taskBytes = 0
+            return 'Error at cell['+str(k)+' '+str(n+1)+'], invalid cell content: ' + str(sheet.cell(row=k, column=n+1).value) + """Vérifier que le format d'entrée de la date correspond bien au format de date du fichier excel ."""
         except :
+            self.taskBytes = 0
             return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
 
     def aggreg(self, paths):
@@ -234,7 +244,7 @@ class Cleaner:
                 if s.endswith('.xlsx') or s.endswith('.XLSX'):
                     continue
                 else:
-                    raise ValueError("Unsupported file format for file: "+s+". Please make sure you can open it with Excel first. Supported formats are: .xlsx,.xlsm,.xltx,.xltm")
+                    raise ValueError("Le format de fichier n'est pas supporté: "+s+".L'application supporte uniquement les formats: .xlsx,.xlsm,.xltx,.xltm")
             sheet = self.wb.worksheets[self.sheetN]
             self.maxBytes = len(paths)
             self.taskBytes = 0
@@ -253,10 +263,13 @@ class Cleaner:
             self.taskBytes = 0
             return ''
         except ValueError as valerr:
+            self.taskBytes = 0
             return valerr
         except FileNotFoundError as filerr:
+            self.taskBytes = 0
             return filerr
         except:
+            self.taskBytes = 0
             return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
 
     def param(self, listBans):
@@ -265,8 +278,10 @@ class Cleaner:
             self.banned = self.banned + listBans
             return ''
         except:
+            self.taskBytes = 0
             return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
 
+#Non Utilisé
     def lock(self):
         """Lock sheet"""
         try:
@@ -276,6 +291,7 @@ class Cleaner:
                 self.wb.protection.sheet = True
             return ''
         except:
+            self.taskBytes = 0
             return 'Locking failed.'
 
     def doublons(self, columns):
@@ -286,9 +302,9 @@ class Cleaner:
             sheet = self.wb.worksheets[self.sheetN]
             for s in columns:
                 if s>sheet.max_column:
-                    raise IndexError("Specified index is higher than the amount of columns.")
+                    raise IndexError("L'index spécifié est supérieur aux nombres de colonnes du fichier.")
                 if type(s) is not int:
-                    raise TypeError("Wrong type of index.")
+                    raise TypeError("Le type pour l'index n'est pas respecté.")
             self.maxBytes = len(columns)*sheet.max_row
             self.taskBytes = 0
             maxCol = sheet.max_column+1
@@ -310,12 +326,16 @@ class Cleaner:
             self.taskBytes = 0
             return ''
         except ValueError:
-            return "Error while processing column indexes: "+str(columns)+", please make sure to provide an integer index."
+            self.taskBytes = 0
+            return "Erreur de la lecture des index: "+str(columns)+", vérifier que l'index spécifié est un nombre."
         except IndexError as indexerr:
+            self.taskBytes = 0
             return indexerr
         except TypeError as typerr:
+            self.taskBytes = 0
             return typerr
         except:
+            self.taskBytes = 0
             return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
 
     def count(self, colIndex):
@@ -326,9 +346,9 @@ class Cleaner:
             sheet = self.wb.worksheets[self.sheetN]
             for s in colIndex:
                 if s>sheet.max_column:
-                    raise IndexError("Specified index is higher than the amount of columns.")
+                    raise IndexError("L'index spécifié est supérieur aux nombres de colonnes du fichier.")
                 if type(s) is not int:
-                    raise TypeError("Wrong type of index.")
+                    raise TypeError("Le type pour l'index n'est pas respecté.")
             self.maxBytes = sheet.max_row*2
             self.taskBytes = 0
             sequences = []
@@ -350,12 +370,16 @@ class Cleaner:
             self.taskBytes = 0
             return ''
         except ValueError:
-            return "Error while processing column indexes: "+str(colIndex)+", please make sure to provide an integer index."
+            self.taskBytes = 0
+            return "Erreur de la lecture des index: "+str(colIndex)+", vérifier que l'index spécifié est un nombre."
         except IndexError as indexerr:
+            self.taskBytes = 0
             return indexerr
         except TypeError as typerr:
+            self.taskBytes = 0
             return typerr
         except :
+            self.taskBytes = 0
             return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
 
 
@@ -365,11 +389,11 @@ class Cleaner:
             sheet = self.wb.worksheets[self.sheetN]
             for s in colIndex:
                 if s>sheet.max_column:
-                    raise IndexError("One of the specified indexes for the combination is higher than the amount of columns.")
+                    raise IndexError("L'index spécifié pour le numéro de colonne à traiter est supérieur aux nombres de colonnes du fichier.")
                 if type(s) is not int:
-                    raise TypeError("Wrong type of index.")
+                    raise TypeError("Le type pour l'index n'est pas respecté.")
             if colAdd>sheet.max_column:
-                    raise IndexError("The specified index for the summ is higher than the amount of columns.")
+                    raise IndexError("L'index spécifié pour le numéro colonne à sommer est supérieur aux nombres de colonnes du fichier.")
             self.maxBytes = sheet.max_row*2
             self.taskBytes = 0
             sequences = {}
@@ -399,12 +423,16 @@ class Cleaner:
             self.taskBytes = 0
             return ''
         except ValueError:
-            return "Error while processing column indexes, please make sure to provide an integer index."
+            self.taskBytes = 0
+            return "Erreur de la lecture des index, vérifier que l'index spécifié est un nombre."
         except IndexError as indexerr:
+            self.taskBytes = 0
             return indexerr
         except TypeError as typerr:
+            self.taskBytes = 0
             return typerr
         except:
+            self.taskBytes = 0
             return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
 
     def joint(self, path, colComp1, colComp2, colJoints):
@@ -419,12 +447,12 @@ class Cleaner:
                 sheetB = cleaner2.wb.worksheets[cleaner2.sheetN]
                 sheet = self.wb.worksheets[self.sheetN]
                 if colComp1>sheet.max_column:
-                    raise IndexError("Specified index for matching main file is higher than the amount of columns.")
+                    raise IndexError("L'index spécifié pour le numéro de colonne à matcher du fichier 1 est supérieur aux nombres de colonnes du fichier.")
                 if colComp2>sheetB.max_column:
-                    raise IndexError("Specified index for matching joint file is higher than the amount of columns.")
+                    raise IndexError("L'index spécifié pour le numéro de colonne à matcher du fichier 2 est supérieur aux nombres de colonnes du fichier.")
                 for s in colJoints:
                     if s>sheetB.max_column:
-                        raise IndexError("Specified index for adding joint data is higher than the amount of columns.")
+                        raise IndexError("L'index spécifié pour le numéro de colonne à joindre est supérieur aux nombres de colonnes du fichier.")
                 self.taskBytes = 0
                 mr = sheet.max_row
                 mb = sheetB.max_row
@@ -471,14 +499,18 @@ class Cleaner:
                     sheet.cell(row=1, column=n+1+mc).value = s
                 return ''
             else:
-                raise ValueError("Unsupported file format. Please check you can open it with Excel first. Supported formats are: .xlsx,.xlsm,.xltx,.xltm")
+                raise ValueError("Le format de fichier n'est pas supporté. L'application supporte uniquement les formats: .xlsx,.xlsm,.xltx,.xltm")
         except ValueError as valerr:
+            self.taskBytes = 0
             return valerr
         except FileNotFoundError as filerr:
+            self.taskBytes = 0
             return filerr
         except IndexError as indexerr:
+            self.taskBytes = 0
             return indexerr
         except:
+            self.taskBytes = 0
             return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
 
     def categorize(self, mod, colIndexC, changes):
@@ -488,7 +520,7 @@ class Cleaner:
             if mod == "numerical":
                 sheet = self.wb.worksheets[self.sheetN]
                 if colIndexC>sheet.max_column:
-                    raise IndexError("Specified index is higher than the amount of columns.")
+                    raise IndexError("L'index spécifié est supérieur aux nombres de colonnes du fichier.")
                 maxCol = sheet.max_column+1
                 self.maxBytes = sheet.max_row
                 self.taskBytes = 0
@@ -509,7 +541,7 @@ class Cleaner:
             if mod == "substitute":
                 sheet = self.wb.worksheets[self.sheetN]
                 if colIndexC>sheet.max_column:
-                    raise IndexError("Specified index is higher than the amount of columns.")
+                    raise IndexError("L'index spécifié est supérieur aux nombres de colonnes du fichier.")
                 maxCol = sheet.max_column+1
                 self.maxBytes = sheet.max_row
                 self.taskBytes = 0
@@ -529,10 +561,13 @@ class Cleaner:
                 self.taskBytes = 0
             return ''
         except IndexError as indexerr:
+            self.taskBytes = 0
             return indexerr
         except ValueError:
-            return "Error while processing column indexes, please make sure to provide an integer index."
+            self.taskBytes = 0
+            return "Erreur de la lecture des index, vérifier que l'index spécifié est un nombre."
         except:
+            self.taskBytes = 0
             return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
 
     def addIndex(self):
@@ -550,12 +585,14 @@ class Cleaner:
                         pass
             return ''
         except:
+            self.taskBytes = 0
             return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
 
     def convertFloat(self, value):
         try:
             return float(value)
         except:
+            self.taskBytes = 0
             return(value)
 
     def checkIsNumber(self, s):
@@ -564,6 +601,7 @@ class Cleaner:
                 int(i)
             return 'number'
         except:
+            self.taskBytes = 0
             return 'not number'
 
     def timeMachine(self, request, *args):
@@ -591,6 +629,7 @@ class Cleaner:
                 self.wb = openpyxl.load_workbook(self.pathList[0])
                 return self.pathList[0]
         except:
+            self.taskBytes = 0
             return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
 
     def dateHexGen(self):
@@ -598,6 +637,7 @@ class Cleaner:
         try:
             return secrets.token_hex(32)
         except:
+            self.taskBytes = 0
             return secrets.token_hex(32)
 
     def getProgress(self):
@@ -608,6 +648,7 @@ class Cleaner:
             self.banned = ['.',' ','#N/A','#DIV/0','inconnu','?','NA','None']
             return ''
         except:
+            self.taskBytes = 0
             return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
 
     def saveWB(self, key, newPath):
@@ -629,4 +670,5 @@ class Cleaner:
                 self.wba.save(pathWBA)
                 return ''
         except:
+            self.taskBytes = 0
             return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
