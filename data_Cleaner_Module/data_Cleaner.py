@@ -52,9 +52,9 @@ class Cleaner:
             else:
                 raise ValueError("Unsupported file format. Please check you can open it with Excel first. Supported formats are: .xlsx,.xlsm,.xltx,.xltm")
         except ValueError as valerr:
-            return str(valerr)
+            return valerr
         except FileNotFoundError as filerr:
-            return str(filerr)
+            return filerr
         except:
             return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
 
@@ -79,6 +79,8 @@ class Cleaner:
             for s in colIndexAN:
                 if s>sheet.max_column:
                     raise IndexError("Specified index is higher than the amount of columns.")
+                if type(s) is not int:
+                    raise TypeError("Wrong type of index.")
                 else:
                     head += '+'+str(sheet.cell(row=1, column=s).value)
             self.wba.active.cell(row=1, column=2).value = head
@@ -130,8 +132,10 @@ class Cleaner:
             self.taskBytes = 0
         except ValueError:
             return "Error while processing column indexes: "+str(colIndexAN)+", please make sure to provide an integer index."
+        except TypeError as typerr:
+            return typerr
         except IndexError as indexerr:
-            return str(indexerr)
+            return indexerr
         except:
             return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
 
@@ -249,9 +253,9 @@ class Cleaner:
             self.taskBytes = 0
             return ''
         except ValueError as valerr:
-            return str(valerr)
+            return valerr
         except FileNotFoundError as filerr:
-            return str(filerr)
+            return filerr
         except:
             return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
 
@@ -283,6 +287,8 @@ class Cleaner:
             for s in columns:
                 if s>sheet.max_column:
                     raise IndexError("Specified index is higher than the amount of columns.")
+                if type(s) is not int:
+                    raise TypeError("Wrong type of index.")
             self.maxBytes = len(columns)*sheet.max_row
             self.taskBytes = 0
             maxCol = sheet.max_column+1
@@ -306,7 +312,9 @@ class Cleaner:
         except ValueError:
             return "Error while processing column indexes: "+str(columns)+", please make sure to provide an integer index."
         except IndexError as indexerr:
-            return str(indexerr)
+            return indexerr
+        except TypeError as typerr:
+            return typerr
         except:
             return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
 
@@ -314,10 +322,13 @@ class Cleaner:
         """Counts the number of occurences of a given
         combination of column values and write that amount in the last column"""
         try:
+            print('1')
             sheet = self.wb.worksheets[self.sheetN]
             for s in colIndex:
                 if s>sheet.max_column:
                     raise IndexError("Specified index is higher than the amount of columns.")
+                if type(s) is not int:
+                    raise TypeError("Wrong type of index.")
             self.maxBytes = sheet.max_row*2
             self.taskBytes = 0
             sequences = []
@@ -341,7 +352,9 @@ class Cleaner:
         except ValueError:
             return "Error while processing column indexes: "+str(colIndex)+", please make sure to provide an integer index."
         except IndexError as indexerr:
-            return str(indexerr)
+            return indexerr
+        except TypeError as typerr:
+            return typerr
         except :
             return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
 
@@ -353,6 +366,8 @@ class Cleaner:
             for s in colIndex:
                 if s>sheet.max_column:
                     raise IndexError("One of the specified indexes for the combination is higher than the amount of columns.")
+                if type(s) is not int:
+                    raise TypeError("Wrong type of index.")
             if colAdd>sheet.max_column:
                     raise IndexError("The specified index for the summ is higher than the amount of columns.")
             self.maxBytes = sheet.max_row*2
@@ -386,7 +401,9 @@ class Cleaner:
         except ValueError:
             return "Error while processing column indexes, please make sure to provide an integer index."
         except IndexError as indexerr:
-            return str(indexerr)
+            return indexerr
+        except TypeError as typerr:
+            return typerr
         except:
             return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
 
@@ -456,11 +473,11 @@ class Cleaner:
             else:
                 raise ValueError("Unsupported file format. Please check you can open it with Excel first. Supported formats are: .xlsx,.xlsm,.xltx,.xltm")
         except ValueError as valerr:
-            return str(valerr)
+            return valerr
         except FileNotFoundError as filerr:
-            return str(filerr)
+            return filerr
         except IndexError as indexerr:
-            return str(indexerr)
+            return indexerr
         except:
             return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
 
@@ -512,7 +529,7 @@ class Cleaner:
                 self.taskBytes = 0
             return ''
         except IndexError as indexerr:
-            return str(indexerr)
+            return indexerr
         except ValueError:
             return "Error while processing column indexes, please make sure to provide an integer index."
         except:
@@ -602,7 +619,7 @@ class Cleaner:
             if key == 1:
                 self.wb.save(newPath)
                 self.pathList.append(newPath)
-                return 'Succesfully saved at: '+newPath
+                return ''
             else:
                 self.wb.save(newPath)
                 self.pathList.append(newPath)
@@ -610,6 +627,6 @@ class Cleaner:
                 pathWBA = newPath[:index] + '_ID' + newPath[index:]
                 self.wb.save(newPath)
                 self.wba.save(pathWBA)
-                return 'Succesfully saved both files at:'+newPath+ 'and'+pathWBA+'.'
+                return ''
         except:
             return "Unexpected error: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1])
